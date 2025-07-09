@@ -66,6 +66,7 @@ const Index = () => {
       const { data: assetsData, error: assetsError } = await supabase
         .from('digital_assets')
         .select('*')
+        .eq('user_id', user.id)
         .eq('folder_id', currentFolder?.id || null)
         .order('created_at', { ascending: false });
 
@@ -95,6 +96,7 @@ const Index = () => {
       const { data: foldersData, error: foldersError } = await supabase
         .from('folders')
         .select('*')
+        .eq('user_id', user.id)
         .eq('parent_folder_id', currentFolder?.id || null)
         .order('name', { ascending: true });
 
@@ -124,6 +126,8 @@ const Index = () => {
   };
 
   const handleNavigateToFolder = async (folderId: string | null) => {
+    if (!user) return;
+    
     if (folderId === null) {
       // Navigate to root
       setCurrentFolder(null);
@@ -136,6 +140,7 @@ const Index = () => {
       .from('folders')
       .select('*')
       .eq('id', folderId)
+      .eq('user_id', user.id)
       .single();
 
     if (error) {
@@ -164,6 +169,7 @@ const Index = () => {
           .from('folders')
           .select('*')
           .eq('id', currentParent)
+          .eq('user_id', user.id)
           .single();
 
         if (parentError || !parentData) break;
@@ -189,11 +195,13 @@ const Index = () => {
   };
 
   const handleDeleteFolder = async (folderId: string) => {
+    if (!user) return;
     try {
       const { error } = await supabase
         .from('folders')
         .delete()
-        .eq('id', folderId);
+        .eq('id', folderId)
+        .eq('user_id', user.id);
 
       if (error) throw error;
 
@@ -214,6 +222,7 @@ const Index = () => {
   };
 
   const handleRenameFolder = async (folderId: string, currentName: string) => {
+    if (!user) return;
     const newName = prompt('Enter new folder name:', currentName);
     if (!newName || newName.trim() === currentName) return;
 
@@ -221,7 +230,8 @@ const Index = () => {
       const { error } = await supabase
         .from('folders')
         .update({ name: newName.trim() })
-        .eq('id', folderId);
+        .eq('id', folderId)
+        .eq('user_id', user.id);
 
       if (error) throw error;
 
@@ -245,7 +255,21 @@ const Index = () => {
 
   const handleFolderCreated = () => {
     // Refresh folders by re-triggering the effect
-    setCurrentFolder(prev => ({ ...prev! }));
+    setCurrentFolder(prev => prev ? { ...prev } : null);
+  };
+
+  const handleAssetUpdated = (updatedAsset: DigitalAsset) => {
+    setAssets(prev => prev.map(asset => 
+      asset.id === updatedAsset.id ? updatedAsset : asset
+    ));
+    setFilteredAssets(prev => prev.map(asset => 
+      asset.id === updatedAsset.id ? updatedAsset : asset
+    ));
+  };
+
+  const handleAssetDeleted = (assetId: string) => {
+    setAssets(prev => prev.filter(asset => asset.id !== assetId));
+    setFilteredAssets(prev => prev.filter(asset => asset.id !== assetId));
   };
 
   const handleSearch = (query: string, tags: string[]) => {
@@ -328,17 +352,19 @@ const Index = () => {
               </DropdownMenu>
             </div>
           </div>
-              </div>
-              
-              <Button
-                variant="outline"
-                size="sm"
-                onClick={() => setShowCreateFolderModal(true)}
-                className="text-slate-600 hover:text-slate-900"
-              >
-                <FolderPlus className="h-4 w-4 mr-2" />
-                New Folder
-              </Button>
+          
+          <div className="flex items-center mt-4">
+            <Button
+              variant="outline"
+              size="sm"
+              onClick={() => setShowCreateFolderModal(true)}
+              className="text-slate-600 hover:text-slate-900"
+            >
+              <FolderPlus className="h-4 w-4 mr-2" />
+              New Folder
+            </Button>
+          </div>
+        </div>
       </header>
 
       <div className="max-w-7xl mx-auto px-6 py-8">
@@ -416,6 +442,8 @@ const Index = () => {
             <FileGallery 
               assets={filteredAssets}
               viewMode={viewMode}
+              onAssetUpdated={handleAssetUpdated}
+              onAssetDeleted={handleAssetDeleted}
             />
           </div>
         </div>

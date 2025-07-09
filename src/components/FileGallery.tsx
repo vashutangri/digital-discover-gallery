@@ -3,13 +3,16 @@ import { useState } from 'react';
 import { Calendar, Tag, Image as ImageIcon, Video, Eye, Download, MoreHorizontal } from 'lucide-react';
 import { DigitalAsset } from '../pages/Index';
 import FilePreviewModal from './FilePreviewModal';
+import { FileActions } from './FileActions';
 
 interface FileGalleryProps {
   assets: DigitalAsset[];
   viewMode: 'grid' | 'list';
+  onAssetUpdated: (updatedAsset: DigitalAsset) => void;
+  onAssetDeleted: (assetId: string) => void;
 }
 
-const FileGallery = ({ assets, viewMode }: FileGalleryProps) => {
+const FileGallery = ({ assets, viewMode, onAssetUpdated, onAssetDeleted }: FileGalleryProps) => {
   const [selectedAsset, setSelectedAsset] = useState<DigitalAsset | null>(null);
 
   const formatFileSize = (bytes: number) => {
@@ -102,9 +105,11 @@ const FileGallery = ({ assets, viewMode }: FileGalleryProps) => {
                     >
                       <Eye className="h-4 w-4" />
                     </button>
-                    <button className="p-2 text-slate-600 hover:text-slate-900 hover:bg-slate-100 rounded-lg transition-colors">
-                      <MoreHorizontal className="h-4 w-4" />
-                    </button>
+                    <FileActions 
+                      asset={asset} 
+                      onAssetUpdated={onAssetUpdated}
+                      onAssetDeleted={onAssetDeleted}
+                    />
                   </div>
                 </div>
               </div>
@@ -180,9 +185,16 @@ const FileGallery = ({ assets, viewMode }: FileGalleryProps) => {
                 )}
               </div>
               
-              <div className="flex items-center justify-between text-xs text-slate-500">
-                <span>{formatFileSize(asset.size)}</span>
-                <span>{formatDate(asset.uploadDate)}</span>
+              <div className="flex items-center justify-between">
+                <div className="flex items-center text-xs text-slate-500 space-x-2">
+                  <span>{formatFileSize(asset.size)}</span>
+                  <span>{formatDate(asset.uploadDate)}</span>
+                </div>
+                <FileActions 
+                  asset={asset} 
+                  onAssetUpdated={onAssetUpdated}
+                  onAssetDeleted={onAssetDeleted}
+                />
               </div>
             </div>
           </div>
