@@ -1,6 +1,6 @@
 
 import { useCallback, useState } from 'react';
-import { Upload, Image, Video, FileText, Loader } from 'lucide-react';
+import { Upload, Image as ImageIcon, Video, FileText, Loader } from 'lucide-react';
 import { DigitalAsset } from '../pages/Index';
 import { analyzeImageContent } from '../utils/aiAnalysis';
 
@@ -190,7 +190,7 @@ const FileUploadZone = ({ onFilesUploaded, isAnalyzing, setIsAnalyzing }: FileUp
               </p>
               <div className="flex items-center justify-center space-x-4 text-sm text-slate-500">
                 <div className="flex items-center space-x-1">
-                  <Image className="h-4 w-4" />
+                  <ImageIcon className="h-4 w-4" />
                   <span>Images</span>
                 </div>
                 <div className="flex items-center space-x-1">
