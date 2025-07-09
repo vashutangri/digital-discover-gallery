@@ -1,6 +1,7 @@
 
-import { useState } from 'react';
+import { useState, useEffect } from 'react';
 import { Upload, Search, Grid, List, Filter, LogOut, User } from 'lucide-react';
+import { supabase } from '@/integrations/supabase/client';
 import { useAuth } from '@/hooks/useAuth';
 import { Button } from '@/components/ui/button';
 import { 
@@ -40,6 +41,47 @@ const Index = () => {
   const [selectedTags, setSelectedTags] = useState<string[]>([]);
   const [viewMode, setViewMode] = useState<'grid' | 'list'>('grid');
   const [isAnalyzing, setIsAnalyzing] = useState(false);
+
+  // Load user's assets when they sign in
+  useEffect(() => {
+    const loadAssets = async () => {
+      if (!user) {
+        setAssets([]);
+        setFilteredAssets([]);
+        return;
+      }
+
+      const { data, error } = await supabase
+        .from('digital_assets')
+        .select('*')
+        .order('created_at', { ascending: false });
+
+      if (error) {
+        console.error('Error loading assets:', error);
+        return;
+      }
+
+      const loadedAssets: DigitalAsset[] = data.map(asset => ({
+        id: asset.id,
+        name: asset.name,
+        type: asset.type as 'image' | 'video',
+        size: asset.size,
+        url: asset.url,
+        thumbnail: asset.thumbnail,
+        uploadDate: new Date(asset.upload_date),
+        tags: asset.tags || [],
+        description: asset.description || '',
+        metadata: typeof asset.metadata === 'object' && asset.metadata !== null ?
+          asset.metadata as { width?: number; height?: number; duration?: number; format: string } :
+          { format: 'unknown' },
+      }));
+
+      setAssets(loadedAssets);
+      setFilteredAssets(loadedAssets);
+    };
+
+    loadAssets();
+  }, [user]);
 
   const handleFilesUploaded = (newAssets: DigitalAsset[]) => {
     const updatedAssets = [...assets, ...newAssets];

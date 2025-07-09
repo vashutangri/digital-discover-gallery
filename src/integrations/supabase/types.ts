@@ -14,7 +14,54 @@ export type Database = {
   }
   public: {
     Tables: {
-      [_ in never]: never
+      digital_assets: {
+        Row: {
+          created_at: string
+          description: string | null
+          id: string
+          metadata: Json | null
+          name: string
+          size: number
+          tags: string[] | null
+          thumbnail: string
+          type: string
+          updated_at: string
+          upload_date: string
+          url: string
+          user_id: string
+        }
+        Insert: {
+          created_at?: string
+          description?: string | null
+          id?: string
+          metadata?: Json | null
+          name: string
+          size: number
+          tags?: string[] | null
+          thumbnail: string
+          type: string
+          updated_at?: string
+          upload_date?: string
+          url: string
+          user_id: string
+        }
+        Update: {
+          created_at?: string
+          description?: string | null
+          id?: string
+          metadata?: Json | null
+          name?: string
+          size?: number
+          tags?: string[] | null
+          thumbnail?: string
+          type?: string
+          updated_at?: string
+          upload_date?: string
+          url?: string
+          user_id?: string
+        }
+        Relationships: []
+      }
     }
     Views: {
       [_ in never]: never

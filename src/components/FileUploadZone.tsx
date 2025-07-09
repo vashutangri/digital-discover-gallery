@@ -3,6 +3,8 @@ import { useCallback, useState } from 'react';
 import { Upload, Image as ImageIcon, Video, FileText, Loader } from 'lucide-react';
 import { DigitalAsset } from '../pages/Index';
 import { analyzeImageContent } from '../utils/aiAnalysis';
+import { supabase } from '@/integrations/supabase/client';
+import { useAuth } from '@/hooks/useAuth';
 
 interface FileUploadZoneProps {
   onFilesUploaded: (assets: DigitalAsset[]) => void;
@@ -11,6 +13,7 @@ interface FileUploadZoneProps {
 }
 
 const FileUploadZone = ({ onFilesUploaded, isAnalyzing, setIsAnalyzing }: FileUploadZoneProps) => {
+  const { user } = useAuth();
   const [isDragOver, setIsDragOver] = useState(false);
   const [uploadProgress, setUploadProgress] = useState<{ [key: string]: number }>({});
 
@@ -25,6 +28,11 @@ const FileUploadZone = ({ onFilesUploaded, isAnalyzing, setIsAnalyzing }: FileUp
   }, []);
 
   const processFiles = async (files: FileList) => {
+    if (!user) {
+      alert('Please sign in to upload files');
+      return;
+    }
+
     const fileArray = Array.from(files);
     const supportedTypes = ['image/jpeg', 'image/png', 'image/webp', 'image/gif', 'video/mp4', 'video/webm'];
     const validFiles = fileArray.filter(file => supportedTypes.includes(file.type));
@@ -38,19 +46,31 @@ const FileUploadZone = ({ onFilesUploaded, isAnalyzing, setIsAnalyzing }: FileUp
     const newAssets: DigitalAsset[] = [];
 
     for (const file of validFiles) {
-      const fileId = Math.random().toString(36).substr(2, 9);
+      const fileId = crypto.randomUUID();
       setUploadProgress(prev => ({ ...prev, [fileId]: 0 }));
 
       try {
-        // Create object URL for preview
-        const url = URL.createObjectURL(file);
         const isVideo = file.type.startsWith('video/');
         
-        // Simulate upload progress
-        for (let progress = 0; progress <= 100; progress += 20) {
-          setUploadProgress(prev => ({ ...prev, [fileId]: progress }));
-          await new Promise(resolve => setTimeout(resolve, 100));
+        // Upload file to Supabase storage
+        const fileName = `${user.id}/${fileId}-${file.name}`;
+        setUploadProgress(prev => ({ ...prev, [fileId]: 20 }));
+        
+        const { data: uploadData, error: uploadError } = await supabase.storage
+          .from('digital-assets')
+          .upload(fileName, file);
+
+        if (uploadError) {
+          console.error('Upload error:', uploadError);
+          continue;
         }
+
+        setUploadProgress(prev => ({ ...prev, [fileId]: 60 }));
+
+        // Get public URL for the uploaded file
+        const { data: { publicUrl } } = supabase.storage
+          .from('digital-assets')
+          .getPublicUrl(fileName);
 
         let tags: string[] = [];
         let description = '';
@@ -61,10 +81,13 @@ const FileUploadZone = ({ onFilesUploaded, isAnalyzing, setIsAnalyzing }: FileUp
           duration: undefined as number | undefined,
         };
 
+        // Create object URL for analysis
+        const tempUrl = URL.createObjectURL(file);
+
         if (!isVideo) {
           // Analyze image content with AI
           try {
-            const analysis = await analyzeImageContent(url);
+            const analysis = await analyzeImageContent(tempUrl);
             tags = analysis.tags;
             description = analysis.description;
           } catch (error) {
@@ -81,7 +104,7 @@ const FileUploadZone = ({ onFilesUploaded, isAnalyzing, setIsAnalyzing }: FileUp
               metadata.height = img.height;
               resolve(true);
             };
-            img.src = url;
+            img.src = tempUrl;
           });
         } else {
           // Basic video handling
@@ -97,21 +120,51 @@ const FileUploadZone = ({ onFilesUploaded, isAnalyzing, setIsAnalyzing }: FileUp
               metadata.duration = video.duration;
               resolve(true);
             };
-            video.src = url;
+            video.src = tempUrl;
           });
         }
 
+        // Clean up temporary URL
+        URL.revokeObjectURL(tempUrl);
+
+        setUploadProgress(prev => ({ ...prev, [fileId]: 80 }));
+
+        // Save asset metadata to database
+        const { data: assetData, error: dbError } = await supabase
+          .from('digital_assets')
+          .insert({
+            id: fileId,
+            user_id: user.id,
+            name: file.name,
+            type: isVideo ? 'video' : 'image',
+            size: file.size,
+            url: publicUrl,
+            thumbnail: publicUrl,
+            tags,
+            description,
+            metadata,
+          })
+          .select()
+          .single();
+
+        if (dbError) {
+          console.error('Database error:', dbError);
+          continue;
+        }
+
         const asset: DigitalAsset = {
-          id: fileId,
-          name: file.name,
-          type: isVideo ? 'video' : 'image',
-          size: file.size,
-          url,
-          thumbnail: url,
-          uploadDate: new Date(),
-          tags,
-          description,
-          metadata,
+          id: assetData.id,
+          name: assetData.name,
+          type: assetData.type as 'image' | 'video',
+          size: assetData.size,
+          url: assetData.url,
+          thumbnail: assetData.thumbnail,
+          uploadDate: new Date(assetData.upload_date),
+          tags: assetData.tags || [],
+          description: assetData.description || '',
+          metadata: typeof assetData.metadata === 'object' && assetData.metadata !== null ? 
+            assetData.metadata as { width?: number; height?: number; duration?: number; format: string } : 
+            { format: file.type },
         };
 
         newAssets.push(asset);
