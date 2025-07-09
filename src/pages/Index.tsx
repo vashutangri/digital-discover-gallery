@@ -83,11 +83,19 @@ const Index = () => {
       console.log('Current folder:', currentFolder);
 
       // Load assets
-      const { data: assetsData, error: assetsError } = await supabase
+      let assetsQuery = supabase
         .from('digital_assets')
         .select('*')
-        .eq('user_id', user.id)
-        .eq('folder_id', currentFolder?.id || null)
+        .eq('user_id', user.id);
+      
+      // Handle null folder_id correctly
+      if (currentFolder?.id) {
+        assetsQuery = assetsQuery.eq('folder_id', currentFolder.id);
+      } else {
+        assetsQuery = assetsQuery.is('folder_id', null);
+      }
+      
+      const { data: assetsData, error: assetsError } = await assetsQuery
         .order('created_at', { ascending: false });
 
       if (assetsError) {
@@ -114,11 +122,20 @@ const Index = () => {
 
       // Load folders in current directory
       console.log('Loading folders for user:', user.id, 'parent folder:', currentFolder?.id || null);
-      const { data: foldersData, error: foldersError } = await supabase
+      
+      let foldersQuery = supabase
         .from('folders')
         .select('*')
-        .eq('user_id', user.id)
-        .eq('parent_folder_id', currentFolder?.id || null)
+        .eq('user_id', user.id);
+      
+      // Handle null parent_folder_id correctly
+      if (currentFolder?.id) {
+        foldersQuery = foldersQuery.eq('parent_folder_id', currentFolder.id);
+      } else {
+        foldersQuery = foldersQuery.is('parent_folder_id', null);
+      }
+      
+      const { data: foldersData, error: foldersError } = await foldersQuery
         .order('name', { ascending: true });
 
       console.log('Folders query result:', { foldersData, foldersError });
@@ -283,12 +300,19 @@ const Index = () => {
     const loadData = async () => {
       if (!user) return;
 
-      // Load folders in current directory
-      const { data: foldersData, error: foldersError } = await supabase
+      // Load folders in current directory with proper null handling
+      let foldersQuery = supabase
         .from('folders')
         .select('*')
-        .eq('user_id', user.id)
-        .eq('parent_folder_id', currentFolder?.id || null)
+        .eq('user_id', user.id);
+      
+      if (currentFolder?.id) {
+        foldersQuery = foldersQuery.eq('parent_folder_id', currentFolder.id);
+      } else {
+        foldersQuery = foldersQuery.is('parent_folder_id', null);
+      }
+      
+      const { data: foldersData, error: foldersError } = await foldersQuery
         .order('name', { ascending: true });
 
       if (foldersError) {
