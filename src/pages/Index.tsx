@@ -1,6 +1,14 @@
 
 import { useState } from 'react';
-import { Upload, Search, Grid, List, Filter } from 'lucide-react';
+import { Upload, Search, Grid, List, Filter, LogOut, User } from 'lucide-react';
+import { useAuth } from '@/hooks/useAuth';
+import { Button } from '@/components/ui/button';
+import { 
+  DropdownMenu, 
+  DropdownMenuContent, 
+  DropdownMenuItem, 
+  DropdownMenuTrigger 
+} from '@/components/ui/dropdown-menu';
 import FileUploadZone from '../components/FileUploadZone';
 import FileGallery from '../components/FileGallery';
 import SearchBar from '../components/SearchBar';
@@ -25,6 +33,7 @@ export interface DigitalAsset {
 }
 
 const Index = () => {
+  const { user, signOut } = useAuth();
   const [assets, setAssets] = useState<DigitalAsset[]>([]);
   const [filteredAssets, setFilteredAssets] = useState<DigitalAsset[]>([]);
   const [searchQuery, setSearchQuery] = useState('');
@@ -102,6 +111,20 @@ const Index = () => {
                   <List className="h-4 w-4" />
                 </button>
               </div>
+              
+              <DropdownMenu>
+                <DropdownMenuTrigger asChild>
+                  <Button variant="outline" size="icon">
+                    <User className="h-4 w-4" />
+                  </Button>
+                </DropdownMenuTrigger>
+                <DropdownMenuContent align="end">
+                  <DropdownMenuItem onClick={signOut}>
+                    <LogOut className="mr-2 h-4 w-4" />
+                    Sign out
+                  </DropdownMenuItem>
+                </DropdownMenuContent>
+              </DropdownMenu>
             </div>
           </div>
         </div>
