@@ -10,9 +10,10 @@ interface FileUploadZoneProps {
   onFilesUploaded: (assets: DigitalAsset[]) => void;
   isAnalyzing: boolean;
   setIsAnalyzing: (analyzing: boolean) => void;
+  currentFolderId: string | null;
 }
 
-const FileUploadZone = ({ onFilesUploaded, isAnalyzing, setIsAnalyzing }: FileUploadZoneProps) => {
+const FileUploadZone = ({ onFilesUploaded, isAnalyzing, setIsAnalyzing, currentFolderId }: FileUploadZoneProps) => {
   const { user } = useAuth();
   const [isDragOver, setIsDragOver] = useState(false);
   const [uploadProgress, setUploadProgress] = useState<{ [key: string]: number }>({});
@@ -27,7 +28,7 @@ const FileUploadZone = ({ onFilesUploaded, isAnalyzing, setIsAnalyzing }: FileUp
     setIsDragOver(false);
   }, []);
 
-  const processFiles = async (files: FileList) => {
+  const processFiles = async (files: FileList, preserveFolderStructure = false) => {
     if (!user) {
       alert('Please sign in to upload files');
       return;
@@ -44,6 +45,46 @@ const FileUploadZone = ({ onFilesUploaded, isAnalyzing, setIsAnalyzing }: FileUp
 
     setIsAnalyzing(true);
     const newAssets: DigitalAsset[] = [];
+    const folderCache = new Map<string, string>(); // path -> folder_id
+
+    // Helper function to create folders from path
+    const createFoldersFromPath = async (filePath: string) => {
+      const pathParts = filePath.split('/').slice(0, -1); // Remove filename
+      if (pathParts.length === 0) return currentFolderId;
+
+      let currentParentId = currentFolderId;
+      let currentPath = '';
+
+      for (const folderName of pathParts) {
+        currentPath = currentPath ? `${currentPath}/${folderName}` : folderName;
+        
+        if (folderCache.has(currentPath)) {
+          currentParentId = folderCache.get(currentPath)!;
+          continue;
+        }
+
+        // Create folder
+        const { data: folderData, error: folderError } = await supabase
+          .from('folders')
+          .insert({
+            name: folderName,
+            user_id: user.id,
+            parent_folder_id: currentParentId,
+          })
+          .select()
+          .single();
+
+        if (folderError) {
+          console.error('Error creating folder:', folderError);
+          return currentFolderId;
+        }
+
+        folderCache.set(currentPath, folderData.id);
+        currentParentId = folderData.id;
+      }
+
+      return currentParentId;
+    };
 
     for (const file of validFiles) {
       const fileId = crypto.randomUUID();
@@ -51,6 +92,12 @@ const FileUploadZone = ({ onFilesUploaded, isAnalyzing, setIsAnalyzing }: FileUp
 
       try {
         const isVideo = file.type.startsWith('video/');
+        
+        // Determine target folder based on file path
+        let targetFolderId = currentFolderId;
+        if (preserveFolderStructure && (file as any).webkitRelativePath) {
+          targetFolderId = await createFoldersFromPath((file as any).webkitRelativePath);
+        }
         
         // Upload file to Supabase storage
         const fileName = `${user.id}/${fileId}-${file.name}`;
@@ -140,6 +187,7 @@ const FileUploadZone = ({ onFilesUploaded, isAnalyzing, setIsAnalyzing }: FileUp
             size: file.size,
             url: publicUrl,
             thumbnail: publicUrl,
+            folder_id: targetFolderId,
             tags,
             description,
             metadata,
@@ -192,7 +240,15 @@ const FileUploadZone = ({ onFilesUploaded, isAnalyzing, setIsAnalyzing }: FileUp
   const handleFileSelect = async (e: React.ChangeEvent<HTMLInputElement>) => {
     const files = e.target.files;
     if (files && files.length > 0) {
-      await processFiles(files);
+      const preserveFolderStructure = e.target.hasAttribute('webkitdirectory');
+      await processFiles(files, preserveFolderStructure);
+    }
+  };
+
+  const handleFolderSelect = async (e: React.ChangeEvent<HTMLInputElement>) => {
+    const files = e.target.files;
+    if (files && files.length > 0) {
+      await processFiles(files, true);
     }
   };
 
@@ -253,18 +309,34 @@ const FileUploadZone = ({ onFilesUploaded, isAnalyzing, setIsAnalyzing }: FileUp
               </div>
             </div>
             
-            <label className="inline-block">
-              <input
-                type="file"
-                multiple
-                accept="image/*,video/*"
-                onChange={handleFileSelect}
-                className="hidden"
-              />
-              <div className="bg-gradient-to-r from-blue-600 to-teal-600 text-white px-6 py-3 rounded-lg font-medium hover:from-blue-700 hover:to-teal-700 transition-all cursor-pointer inline-block">
-                Choose Files
-              </div>
-            </label>
+            <div className="flex flex-col sm:flex-row gap-3 justify-center">
+              <label className="inline-block">
+                <input
+                  type="file"
+                  multiple
+                  accept="image/*,video/*"
+                  onChange={handleFileSelect}
+                  className="hidden"
+                />
+                <div className="bg-gradient-to-r from-blue-600 to-teal-600 text-white px-6 py-3 rounded-lg font-medium hover:from-blue-700 hover:to-teal-700 transition-all cursor-pointer inline-block">
+                  Choose Files
+                </div>
+              </label>
+              
+              <label className="inline-block">
+                <input
+                  type="file"
+                  multiple
+                  accept="image/*,video/*"
+                  {...({ webkitdirectory: "" } as any)}
+                  onChange={handleFolderSelect}
+                  className="hidden"
+                />
+                <div className="bg-gradient-to-r from-purple-600 to-pink-600 text-white px-6 py-3 rounded-lg font-medium hover:from-purple-700 hover:to-pink-700 transition-all cursor-pointer inline-block">
+                  Upload Folder
+                </div>
+              </label>
+            </div>
           </div>
         )}
       </div>

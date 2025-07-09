@@ -1,6 +1,6 @@
 
 import { useState, useEffect } from 'react';
-import { Upload, Search, Grid, List, Filter, LogOut, User } from 'lucide-react';
+import { Upload, Search, Grid, List, Filter, LogOut, User, FolderPlus } from 'lucide-react';
 import { supabase } from '@/integrations/supabase/client';
 import { useAuth } from '@/hooks/useAuth';
 import { Button } from '@/components/ui/button';
@@ -10,10 +10,15 @@ import {
   DropdownMenuItem, 
   DropdownMenuTrigger 
 } from '@/components/ui/dropdown-menu';
+import { useToast } from '@/hooks/use-toast';
 import FileUploadZone from '../components/FileUploadZone';
 import FileGallery from '../components/FileGallery';
 import SearchBar from '../components/SearchBar';
 import FilterPanel from '../components/FilterPanel';
+import { FolderBreadcrumb } from '../components/FolderBreadcrumb';
+import { CreateFolderModal } from '../components/CreateFolderModal';
+import { FolderCard } from '../components/FolderCard';
+import { Folder } from '@/types/folder';
 
 export interface DigitalAsset {
   id: string;
@@ -35,58 +40,212 @@ export interface DigitalAsset {
 
 const Index = () => {
   const { user, signOut } = useAuth();
+  const { toast } = useToast();
   const [assets, setAssets] = useState<DigitalAsset[]>([]);
+  const [folders, setFolders] = useState<Folder[]>([]);
   const [filteredAssets, setFilteredAssets] = useState<DigitalAsset[]>([]);
+  const [currentFolder, setCurrentFolder] = useState<Folder | null>(null);
+  const [folderPath, setFolderPath] = useState<Folder[]>([]);
   const [searchQuery, setSearchQuery] = useState('');
   const [selectedTags, setSelectedTags] = useState<string[]>([]);
   const [viewMode, setViewMode] = useState<'grid' | 'list'>('grid');
   const [isAnalyzing, setIsAnalyzing] = useState(false);
+  const [showCreateFolderModal, setShowCreateFolderModal] = useState(false);
 
-  // Load user's assets when they sign in
+  // Load user's assets and folders when they sign in
   useEffect(() => {
-    const loadAssets = async () => {
+    const loadData = async () => {
       if (!user) {
         setAssets([]);
+        setFolders([]);
         setFilteredAssets([]);
         return;
       }
 
-      const { data, error } = await supabase
+      // Load assets
+      const { data: assetsData, error: assetsError } = await supabase
         .from('digital_assets')
         .select('*')
+        .eq('folder_id', currentFolder?.id || null)
         .order('created_at', { ascending: false });
 
-      if (error) {
-        console.error('Error loading assets:', error);
-        return;
+      if (assetsError) {
+        console.error('Error loading assets:', assetsError);
+      } else {
+        const loadedAssets: DigitalAsset[] = assetsData.map(asset => ({
+          id: asset.id,
+          name: asset.name,
+          type: asset.type as 'image' | 'video',
+          size: asset.size,
+          url: asset.url,
+          thumbnail: asset.thumbnail,
+          uploadDate: new Date(asset.upload_date),
+          tags: asset.tags || [],
+          description: asset.description || '',
+          metadata: typeof asset.metadata === 'object' && asset.metadata !== null ?
+            asset.metadata as { width?: number; height?: number; duration?: number; format: string } :
+            { format: 'unknown' },
+        }));
+
+        setAssets(loadedAssets);
+        setFilteredAssets(loadedAssets);
       }
 
-      const loadedAssets: DigitalAsset[] = data.map(asset => ({
-        id: asset.id,
-        name: asset.name,
-        type: asset.type as 'image' | 'video',
-        size: asset.size,
-        url: asset.url,
-        thumbnail: asset.thumbnail,
-        uploadDate: new Date(asset.upload_date),
-        tags: asset.tags || [],
-        description: asset.description || '',
-        metadata: typeof asset.metadata === 'object' && asset.metadata !== null ?
-          asset.metadata as { width?: number; height?: number; duration?: number; format: string } :
-          { format: 'unknown' },
-      }));
+      // Load folders in current directory
+      const { data: foldersData, error: foldersError } = await supabase
+        .from('folders')
+        .select('*')
+        .eq('parent_folder_id', currentFolder?.id || null)
+        .order('name', { ascending: true });
 
-      setAssets(loadedAssets);
-      setFilteredAssets(loadedAssets);
+      if (foldersError) {
+        console.error('Error loading folders:', foldersError);
+      } else {
+        const loadedFolders: Folder[] = foldersData.map(folder => ({
+          id: folder.id,
+          name: folder.name,
+          user_id: folder.user_id,
+          parent_folder_id: folder.parent_folder_id,
+          created_at: new Date(folder.created_at),
+          updated_at: new Date(folder.updated_at),
+        }));
+
+        setFolders(loadedFolders);
+      }
     };
 
-    loadAssets();
-  }, [user]);
+    loadData();
+  }, [user, currentFolder]);
 
   const handleFilesUploaded = (newAssets: DigitalAsset[]) => {
     const updatedAssets = [...assets, ...newAssets];
     setAssets(updatedAssets);
     setFilteredAssets(updatedAssets);
+  };
+
+  const handleNavigateToFolder = async (folderId: string | null) => {
+    if (folderId === null) {
+      // Navigate to root
+      setCurrentFolder(null);
+      setFolderPath([]);
+      return;
+    }
+
+    // Load folder data
+    const { data: folderData, error } = await supabase
+      .from('folders')
+      .select('*')
+      .eq('id', folderId)
+      .single();
+
+    if (error) {
+      console.error('Error loading folder:', error);
+      return;
+    }
+
+    const folder: Folder = {
+      id: folderData.id,
+      name: folderData.name,
+      user_id: folderData.user_id,
+      parent_folder_id: folderData.parent_folder_id,
+      created_at: new Date(folderData.created_at),
+      updated_at: new Date(folderData.updated_at),
+    };
+
+    setCurrentFolder(folder);
+
+    // Build folder path
+    const buildPath = async (folder: Folder): Promise<Folder[]> => {
+      const path: Folder[] = [folder];
+      let currentParent = folder.parent_folder_id;
+
+      while (currentParent) {
+        const { data: parentData, error: parentError } = await supabase
+          .from('folders')
+          .select('*')
+          .eq('id', currentParent)
+          .single();
+
+        if (parentError || !parentData) break;
+
+        const parentFolder: Folder = {
+          id: parentData.id,
+          name: parentData.name,
+          user_id: parentData.user_id,
+          parent_folder_id: parentData.parent_folder_id,
+          created_at: new Date(parentData.created_at),
+          updated_at: new Date(parentData.updated_at),
+        };
+
+        path.unshift(parentFolder);
+        currentParent = parentFolder.parent_folder_id;
+      }
+
+      return path.slice(0, -1); // Remove current folder from path
+    };
+
+    const path = await buildPath(folder);
+    setFolderPath(path);
+  };
+
+  const handleDeleteFolder = async (folderId: string) => {
+    try {
+      const { error } = await supabase
+        .from('folders')
+        .delete()
+        .eq('id', folderId);
+
+      if (error) throw error;
+
+      toast({
+        title: "Success",
+        description: "Folder deleted successfully.",
+      });
+
+      // Refresh folders
+      setFolders(folders.filter(f => f.id !== folderId));
+    } catch (error: any) {
+      toast({
+        title: "Error",
+        description: error.message || "Failed to delete folder.",
+        variant: "destructive",
+      });
+    }
+  };
+
+  const handleRenameFolder = async (folderId: string, currentName: string) => {
+    const newName = prompt('Enter new folder name:', currentName);
+    if (!newName || newName.trim() === currentName) return;
+
+    try {
+      const { error } = await supabase
+        .from('folders')
+        .update({ name: newName.trim() })
+        .eq('id', folderId);
+
+      if (error) throw error;
+
+      toast({
+        title: "Success",
+        description: "Folder renamed successfully.",
+      });
+
+      // Update local state
+      setFolders(folders.map(f => 
+        f.id === folderId ? { ...f, name: newName.trim() } : f
+      ));
+    } catch (error: any) {
+      toast({
+        title: "Error",
+        description: error.message || "Failed to rename folder.",
+        variant: "destructive",
+      });
+    }
+  };
+
+  const handleFolderCreated = () => {
+    // Refresh folders by re-triggering the effect
+    setCurrentFolder(prev => ({ ...prev! }));
   };
 
   const handleSearch = (query: string, tags: string[]) => {
@@ -169,7 +328,17 @@ const Index = () => {
               </DropdownMenu>
             </div>
           </div>
-        </div>
+              </div>
+              
+              <Button
+                variant="outline"
+                size="sm"
+                onClick={() => setShowCreateFolderModal(true)}
+                className="text-slate-600 hover:text-slate-900"
+              >
+                <FolderPlus className="h-4 w-4 mr-2" />
+                New Folder
+              </Button>
       </header>
 
       <div className="max-w-7xl mx-auto px-6 py-8">
@@ -213,11 +382,36 @@ const Index = () => {
 
           {/* Main Content */}
           <div className="lg:col-span-3 space-y-6">
+            <FolderBreadcrumb
+              currentFolder={currentFolder}
+              folderPath={folderPath}
+              onNavigateToFolder={handleNavigateToFolder}
+            />
+
             <FileUploadZone 
               onFilesUploaded={handleFilesUploaded}
               isAnalyzing={isAnalyzing}
               setIsAnalyzing={setIsAnalyzing}
+              currentFolderId={currentFolder?.id || null}
             />
+
+            {/* Folders Grid */}
+            {folders.length > 0 && (
+              <div className="bg-white rounded-xl p-6 shadow-sm border border-slate-200">
+                <h3 className="font-semibold text-slate-900 mb-4">Folders</h3>
+                <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4">
+                  {folders.map((folder) => (
+                    <FolderCard
+                      key={folder.id}
+                      folder={folder}
+                      onOpen={handleNavigateToFolder}
+                      onDelete={handleDeleteFolder}
+                      onRename={handleRenameFolder}
+                    />
+                  ))}
+                </div>
+              </div>
+            )}
             
             <FileGallery 
               assets={filteredAssets}
@@ -226,6 +420,13 @@ const Index = () => {
           </div>
         </div>
       </div>
+
+      <CreateFolderModal
+        isOpen={showCreateFolderModal}
+        onClose={() => setShowCreateFolderModal(false)}
+        parentFolderId={currentFolder?.id || null}
+        onFolderCreated={handleFolderCreated}
+      />
     </div>
   );
 };
