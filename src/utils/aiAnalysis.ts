@@ -1,7 +1,7 @@
 
 import { pipeline } from '@huggingface/transformers';
 
-let imageClassifier: any = null;
+let objectDetector: any = null;
 
 export interface AnalysisResult {
   tags: string[];
@@ -12,45 +12,68 @@ export const analyzeImageContent = async (imageUrl: string): Promise<AnalysisRes
   try {
     console.log('Starting AI analysis for image:', imageUrl);
     
-    // Initialize the classifier if not already done
-    if (!imageClassifier) {
-      console.log('Loading AI model...');
-      imageClassifier = await pipeline(
-        'image-classification',
-        'microsoft/resnet-50',
+    // Initialize the object detector if not already done
+    if (!objectDetector) {
+      console.log('Loading object detection model...');
+      objectDetector = await pipeline(
+        'object-detection',
+        'Xenova/detr-resnet-50',
         { device: 'webgpu' }
       );
-      console.log('AI model loaded successfully');
+      console.log('Object detection model loaded successfully');
     }
 
-    // Perform image classification
-    const results = await imageClassifier(imageUrl);
-    console.log('AI analysis results:', results);
+    // Perform object detection
+    const results = await objectDetector(imageUrl);
+    console.log('Object detection results:', results);
 
-    // Extract top predictions
-    const topResults = results.slice(0, 5);
-    const tags = topResults
-      .filter((result: any) => result.score > 0.1) // Filter out low-confidence results
-      .map((result: any) => result.label.toLowerCase().replace(/_/g, ' '))
-      .slice(0, 8); // Limit to 8 tags
+    // Extract detected objects with confidence > 0.3
+    const detectedObjects = results
+      .filter((result: any) => result.score > 0.3)
+      .map((result: any) => result.label.toLowerCase().replace(/_/g, ' '));
 
-    // Generate a description based on the top result
-    const topResult = topResults[0];
-    const description = topResult 
-      ? `This image appears to contain ${topResult.label.toLowerCase().replace(/_/g, ' ')} with ${Math.round(topResult.score * 100)}% confidence.`
-      : 'Image content analyzed';
+    // Get unique tags and limit to 15 for more comprehensive tagging
+    const uniqueTags = [...new Set(detectedObjects as string[])].slice(0, 15);
+
+    // Generate a detailed description
+    const description = uniqueTags.length > 0 
+      ? `This image contains: ${uniqueTags.join(', ')}. Detected ${results.length} objects total.`
+      : 'Image analyzed - no specific objects detected with high confidence';
 
     return {
-      tags: tags.length > 0 ? tags : ['image'],
+      tags: uniqueTags.length > 0 ? uniqueTags : ['image'],
       description
     };
   } catch (error) {
-    console.error('AI analysis failed:', error);
+    console.error('Object detection failed, falling back to image classification:', error);
     
-    // Fallback to basic analysis
-    return {
-      tags: ['image', 'uploaded'],
-      description: 'Image file uploaded successfully'
-    };
+    // Fallback to image classification if object detection fails
+    try {
+      if (!objectDetector) {
+        objectDetector = await pipeline(
+          'image-classification',
+          'microsoft/resnet-50',
+          { device: 'webgpu' }
+        );
+      }
+
+      const results = await objectDetector(imageUrl);
+      const topResults = results.slice(0, 8);
+      const tags = topResults
+        .filter((result: any) => result.score > 0.1)
+        .map((result: any) => result.label.toLowerCase().replace(/_/g, ' '));
+
+      return {
+        tags: tags.length > 0 ? tags : ['image'],
+        description: 'Image classified using fallback method'
+      };
+    } catch (fallbackError) {
+      console.error('All AI analysis methods failed:', fallbackError);
+      
+      return {
+        tags: ['image', 'uploaded'],
+        description: 'Image file uploaded successfully'
+      };
+    }
   }
 };
