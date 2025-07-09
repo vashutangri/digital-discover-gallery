@@ -39,7 +39,7 @@ export interface DigitalAsset {
 }
 
 const Index = () => {
-  const { user, signOut } = useAuth();
+  const { user, loading, signOut } = useAuth();
   const { toast } = useToast();
   const [assets, setAssets] = useState<DigitalAsset[]>([]);
   const [folders, setFolders] = useState<Folder[]>([]);
@@ -52,15 +52,35 @@ const Index = () => {
   const [isAnalyzing, setIsAnalyzing] = useState(false);
   const [showCreateFolderModal, setShowCreateFolderModal] = useState(false);
 
+  // Show loading state while authentication is loading
+  if (loading) {
+    return (
+      <div className="min-h-screen bg-gradient-to-br from-slate-50 to-blue-50 flex items-center justify-center">
+        <div className="text-center">
+          <div className="w-16 h-16 bg-gradient-to-r from-blue-600 to-teal-600 rounded-xl flex items-center justify-center mx-auto mb-4">
+            <Upload className="h-8 w-8 text-white animate-pulse" />
+          </div>
+          <p className="text-slate-600">Loading your assets...</p>
+        </div>
+      </div>
+    );
+  }
+
   // Load user's assets and folders when they sign in
   useEffect(() => {
     const loadData = async () => {
+      console.log('Loading data, user:', user);
+      
       if (!user) {
+        console.log('No user, clearing data');
         setAssets([]);
         setFolders([]);
         setFilteredAssets([]);
         return;
       }
+
+      console.log('User ID:', user.id);
+      console.log('Current folder:', currentFolder);
 
       // Load assets
       const { data: assetsData, error: assetsError } = await supabase
@@ -93,12 +113,15 @@ const Index = () => {
       }
 
       // Load folders in current directory
+      console.log('Loading folders for user:', user.id, 'parent folder:', currentFolder?.id || null);
       const { data: foldersData, error: foldersError } = await supabase
         .from('folders')
         .select('*')
         .eq('user_id', user.id)
         .eq('parent_folder_id', currentFolder?.id || null)
         .order('name', { ascending: true });
+
+      console.log('Folders query result:', { foldersData, foldersError });
 
       if (foldersError) {
         console.error('Error loading folders:', foldersError);
