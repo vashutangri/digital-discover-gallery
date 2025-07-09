@@ -103,6 +103,8 @@ const Index = () => {
       if (foldersError) {
         console.error('Error loading folders:', foldersError);
       } else {
+        console.log('Loaded folders:', foldersData);
+        console.log('Current user ID:', user.id);
         const loadedFolders: Folder[] = foldersData.map(folder => ({
           id: folder.id,
           name: folder.name,
@@ -254,8 +256,36 @@ const Index = () => {
   };
 
   const handleFolderCreated = () => {
-    // Refresh folders by re-triggering the effect
-    setCurrentFolder(prev => prev ? { ...prev } : null);
+    // Force reload by creating a new timestamp
+    const loadData = async () => {
+      if (!user) return;
+
+      // Load folders in current directory
+      const { data: foldersData, error: foldersError } = await supabase
+        .from('folders')
+        .select('*')
+        .eq('user_id', user.id)
+        .eq('parent_folder_id', currentFolder?.id || null)
+        .order('name', { ascending: true });
+
+      if (foldersError) {
+        console.error('Error loading folders:', foldersError);
+      } else {
+        console.log('Refreshed folders:', foldersData);
+        const loadedFolders: Folder[] = foldersData.map(folder => ({
+          id: folder.id,
+          name: folder.name,
+          user_id: folder.user_id,
+          parent_folder_id: folder.parent_folder_id,
+          created_at: new Date(folder.created_at),
+          updated_at: new Date(folder.updated_at),
+        }));
+
+        setFolders(loadedFolders);
+      }
+    };
+
+    loadData();
   };
 
   const handleAssetUpdated = (updatedAsset: DigitalAsset) => {
@@ -424,7 +454,7 @@ const Index = () => {
             {/* Folders Grid */}
             {folders.length > 0 && (
               <div className="bg-white rounded-xl p-6 shadow-sm border border-slate-200">
-                <h3 className="font-semibold text-slate-900 mb-4">Folders</h3>
+                <h3 className="font-semibold text-slate-900 mb-4">Folders ({folders.length})</h3>
                 <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4">
                   {folders.map((folder) => (
                     <FolderCard
@@ -436,6 +466,24 @@ const Index = () => {
                     />
                   ))}
                 </div>
+              </div>
+            )}
+
+            {/* Show message if no folders and no assets */}
+            {folders.length === 0 && assets.length === 0 && (
+              <div className="bg-white rounded-xl p-12 text-center shadow-sm border border-slate-200">
+                <div className="w-20 h-20 bg-slate-100 rounded-full flex items-center justify-center mx-auto mb-4">
+                  <FolderPlus className="h-10 w-10 text-slate-400" />
+                </div>
+                <h3 className="text-lg font-medium text-slate-900 mb-2">Create your first folder</h3>
+                <p className="text-slate-600 mb-4">Organize your assets by creating folders and uploading files.</p>
+                <Button 
+                  onClick={() => setShowCreateFolderModal(true)}
+                  className="bg-gradient-to-r from-blue-600 to-teal-600 text-white hover:from-blue-700 hover:to-teal-700"
+                >
+                  <FolderPlus className="h-4 w-4 mr-2" />
+                  Create Folder
+                </Button>
               </div>
             )}
             
