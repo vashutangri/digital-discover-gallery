@@ -141,30 +141,34 @@ const SmartSearch = ({ onSearch, searchFilters, availableTags }: SmartSearchProp
     searchFilters.sizeRange?.min !== undefined;
 
   return (
-    <div className="bg-card rounded-xl p-6 shadow-sm border">
-      <div className="flex items-center justify-between mb-4">
-        <h3 className="font-semibold text-card-foreground flex items-center space-x-2">
-          <Sparkles className="h-5 w-5 text-primary" />
-          <span>Smart Search</span>
-        </h3>
-        
-        <Button
-          variant="outline"
-          size="sm"
-          onClick={() => setShowAdvanced(!showAdvanced)}
-          className={hasActiveFilters ? 'border-primary text-primary' : ''}
-        >
-          <Filter className="h-4 w-4 mr-2" />
-          Advanced
-          {hasActiveFilters && (
-            <Badge variant="secondary" className="ml-2 h-5 w-5 p-0 text-xs">
-              {[...searchFilters.fileTypes, ...searchFilters.tags].length}
-            </Badge>
-          )}
-        </Button>
+    <div className="bg-card rounded-lg border shadow-sm">
+      {/* Header */}
+      <div className="p-4 border-b bg-muted/30">
+        <div className="flex items-center justify-between">
+          <h3 className="font-medium text-foreground flex items-center gap-2">
+            <Sparkles className="h-4 w-4 text-primary" />
+            <span>Smart Search</span>
+          </h3>
+          
+          <Button
+            variant="ghost"
+            size="sm"
+            onClick={() => setShowAdvanced(!showAdvanced)}
+            className={`transition-colors ${hasActiveFilters ? 'text-primary hover:text-primary/80' : 'text-muted-foreground'}`}
+          >
+            <Filter className="h-4 w-4 mr-1.5" />
+            Filters
+            {hasActiveFilters && (
+              <Badge variant="secondary" className="ml-1.5 h-4 w-4 p-0 text-xs rounded-full">
+                {[...searchFilters.fileTypes, ...searchFilters.tags].length}
+              </Badge>
+            )}
+          </Button>
+        </div>
       </div>
-      
-      <div className="relative">
+
+      {/* Search Input */}
+      <div className="p-4">
         <div className="relative">
           <Search className="absolute left-3 top-1/2 transform -translate-y-1/2 h-4 w-4 text-muted-foreground" />
           <Input
@@ -176,20 +180,20 @@ const SmartSearch = ({ onSearch, searchFilters, availableTags }: SmartSearchProp
             onFocus={() => localQuery.length > 1 && setShowSuggestions(true)}
             onBlur={() => setTimeout(() => setShowSuggestions(false), 200)}
             placeholder="Search by name, tags, content... (use quotes for exact match)"
-            className="pl-10 pr-20"
+            className="pl-10 pr-20 h-10"
           />
-          <div className="absolute right-2 top-1/2 transform -translate-y-1/2 flex items-center space-x-2">
+          <div className="absolute right-2 top-1/2 transform -translate-y-1/2 flex items-center gap-1">
             {localQuery && (
               <Button
                 variant="ghost"
                 size="sm"
                 onClick={clearSearch}
-                className="h-6 w-6 p-0"
+                className="h-6 w-6 p-0 hover:bg-muted"
               >
                 <X className="h-3 w-3" />
               </Button>
             )}
-            <Button onClick={handleSearch} size="sm">
+            <Button onClick={handleSearch} size="sm" className="h-8 px-3">
               Search
             </Button>
           </div>
@@ -202,10 +206,10 @@ const SmartSearch = ({ onSearch, searchFilters, availableTags }: SmartSearchProp
               <button
                 key={index}
                 onClick={() => handleSuggestionClick(suggestion)}
-                className="w-full px-3 py-2 text-left hover:bg-accent hover:text-accent-foreground flex items-center space-x-2"
+                className="w-full px-3 py-2 text-left hover:bg-accent hover:text-accent-foreground flex items-center gap-2 transition-colors"
               >
-                <Clock className="h-3 w-3 text-muted-foreground" />
-                <span className="text-sm">{suggestion}</span>
+                <Clock className="h-3 w-3 text-muted-foreground flex-shrink-0" />
+                <span className="text-sm truncate">{suggestion}</span>
               </button>
             ))}
           </div>
@@ -214,141 +218,143 @@ const SmartSearch = ({ onSearch, searchFilters, availableTags }: SmartSearchProp
 
       {/* Advanced Filters */}
       {showAdvanced && (
-        <div className="mt-6 space-y-4 border-t pt-4">
-          {/* File Types */}
-          <div>
-            <label className="text-sm font-medium text-card-foreground mb-2 flex items-center space-x-2">
-              <FileType className="h-4 w-4" />
-              <span>File Types</span>
-            </label>
-            <div className="flex flex-wrap gap-2">
-              {FILE_TYPES.map(type => (
-                <Button
-                  key={type.value}
-                  variant={searchFilters.fileTypes.includes(type.value) ? "default" : "outline"}
-                  size="sm"
-                  onClick={() => toggleFileType(type.value)}
-                  className="h-8"
-                >
-                  <span className="mr-1">{type.icon}</span>
-                  {type.label}
-                </Button>
-              ))}
-            </div>
-          </div>
-
-          {/* Tags */}
-          {availableTags.length > 0 && (
-            <div>
-              <label className="text-sm font-medium text-card-foreground mb-2 block">Popular Tags</label>
-              <div className="flex flex-wrap gap-2 max-h-32 overflow-y-auto">
-                {availableTags.slice(0, 20).map(tag => (
+        <div className="px-4 pb-4 space-y-4 border-t bg-muted/10">
+          <div className="pt-4">
+            {/* File Types */}
+            <div className="space-y-3">
+              <label className="text-sm font-medium text-foreground flex items-center gap-2">
+                <FileType className="h-4 w-4 text-muted-foreground" />
+                File Types
+              </label>
+              <div className="flex flex-wrap gap-2">
+                {FILE_TYPES.map(type => (
                   <Button
-                    key={tag}
-                    variant={searchFilters.tags.includes(tag) ? "default" : "outline"}
+                    key={type.value}
+                    variant={searchFilters.fileTypes.includes(type.value) ? "default" : "outline"}
                     size="sm"
-                    onClick={() => toggleTag(tag)}
-                    className="h-7 text-xs"
+                    onClick={() => toggleFileType(type.value)}
+                    className="h-8 text-xs"
                   >
-                    {tag}
+                    <span className="mr-1.5">{type.icon}</span>
+                    {type.label}
                   </Button>
                 ))}
               </div>
             </div>
-          )}
 
-          {/* Date Range and Size */}
-          <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
-            {/* Date Range */}
-            <div>
-              <label className="text-sm font-medium text-card-foreground mb-2 flex items-center space-x-2">
-                <Calendar className="h-4 w-4" />
-                <span>Upload Date</span>
-              </label>
-              <Popover>
-                <PopoverTrigger asChild>
-                  <Button variant="outline" size="sm" className="w-full justify-start">
-                    {searchFilters.dateRange?.from ? (
-                      searchFilters.dateRange.to ? (
-                        `${searchFilters.dateRange.from.toLocaleDateString()} - ${searchFilters.dateRange.to.toLocaleDateString()}`
-                      ) : (
-                        `From ${searchFilters.dateRange.from.toLocaleDateString()}`
-                      )
-                    ) : (
-                      'Any date'
-                    )}
-                  </Button>
-                </PopoverTrigger>
-                <PopoverContent className="w-auto p-0">
-                  <CalendarComponent
-                    mode="range"
-                    selected={searchFilters.dateRange ? { 
-                      from: searchFilters.dateRange.from, 
-                      to: searchFilters.dateRange.to 
-                    } : undefined}
-                    onSelect={(range) => onSearch({ ...searchFilters, dateRange: range || undefined })}
-                  />
-                </PopoverContent>
-              </Popover>
-            </div>
-
-            {/* Size Range */}
-            <div>
-              <label className="text-sm font-medium text-card-foreground mb-2 flex items-center space-x-2">
-                <HardDrive className="h-4 w-4" />
-                <span>File Size</span>
-              </label>
-              <Select onValueChange={setSizePreset}>
-                <SelectTrigger className="h-9">
-                  <SelectValue placeholder="Any size" />
-                </SelectTrigger>
-                <SelectContent>
-                  <SelectItem value="any">Any size</SelectItem>
-                  {SIZE_PRESETS.map(preset => (
-                    <SelectItem key={preset.value} value={preset.value}>
-                      {preset.label}
-                    </SelectItem>
+            {/* Tags */}
+            {availableTags.length > 0 && (
+              <div className="space-y-3">
+                <label className="text-sm font-medium text-foreground">Popular Tags</label>
+                <div className="flex flex-wrap gap-2 max-h-24 overflow-y-auto">
+                  {availableTags.slice(0, 15).map(tag => (
+                    <Button
+                      key={tag}
+                      variant={searchFilters.tags.includes(tag) ? "default" : "outline"}
+                      size="sm"
+                      onClick={() => toggleTag(tag)}
+                      className="h-7 text-xs"
+                    >
+                      {tag}
+                    </Button>
                   ))}
-                </SelectContent>
-              </Select>
-            </div>
-          </div>
+                </div>
+              </div>
+            )}
 
-          {/* Sort Options */}
-          <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
-            <div>
-              <label className="text-sm font-medium text-card-foreground mb-2 block">Sort By</label>
-              <Select 
-                value={searchFilters.sortBy}
-                onValueChange={(value: any) => onSearch({ ...searchFilters, sortBy: value })}
-              >
-                <SelectTrigger className="h-9">
-                  <SelectValue />
-                </SelectTrigger>
-                <SelectContent>
-                  <SelectItem value="relevance">Relevance</SelectItem>
-                  <SelectItem value="name">Name</SelectItem>
-                  <SelectItem value="date">Upload Date</SelectItem>
-                  <SelectItem value="size">File Size</SelectItem>
-                  <SelectItem value="views">View Count</SelectItem>
-                </SelectContent>
-              </Select>
+            {/* Date Range and Size */}
+            <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+              {/* Date Range */}
+              <div className="space-y-2">
+                <label className="text-sm font-medium text-foreground flex items-center gap-2">
+                  <Calendar className="h-4 w-4 text-muted-foreground" />
+                  Upload Date
+                </label>
+                <Popover>
+                  <PopoverTrigger asChild>
+                    <Button variant="outline" size="sm" className="w-full justify-start h-9 text-xs">
+                      {searchFilters.dateRange?.from ? (
+                        searchFilters.dateRange.to ? (
+                          `${searchFilters.dateRange.from.toLocaleDateString()} - ${searchFilters.dateRange.to.toLocaleDateString()}`
+                        ) : (
+                          `From ${searchFilters.dateRange.from.toLocaleDateString()}`
+                        )
+                      ) : (
+                        'Any date'
+                      )}
+                    </Button>
+                  </PopoverTrigger>
+                  <PopoverContent className="w-auto p-0">
+                    <CalendarComponent
+                      mode="range"
+                      selected={searchFilters.dateRange ? { 
+                        from: searchFilters.dateRange.from, 
+                        to: searchFilters.dateRange.to 
+                      } : undefined}
+                      onSelect={(range) => onSearch({ ...searchFilters, dateRange: range || undefined })}
+                    />
+                  </PopoverContent>
+                </Popover>
+              </div>
+
+              {/* Size Range */}
+              <div className="space-y-2">
+                <label className="text-sm font-medium text-foreground flex items-center gap-2">
+                  <HardDrive className="h-4 w-4 text-muted-foreground" />
+                  File Size
+                </label>
+                <Select onValueChange={setSizePreset}>
+                  <SelectTrigger className="h-9">
+                    <SelectValue placeholder="Any size" />
+                  </SelectTrigger>
+                  <SelectContent>
+                    <SelectItem value="any">Any size</SelectItem>
+                    {SIZE_PRESETS.map(preset => (
+                      <SelectItem key={preset.value} value={preset.value}>
+                        {preset.label}
+                      </SelectItem>
+                    ))}
+                  </SelectContent>
+                </Select>
+              </div>
             </div>
 
-            <div>
-              <label className="text-sm font-medium text-card-foreground mb-2 block">Order</label>
-              <Select 
-                value={searchFilters.sortOrder}
-                onValueChange={(value: any) => onSearch({ ...searchFilters, sortOrder: value })}
-              >
-                <SelectTrigger className="h-9">
-                  <SelectValue />
-                </SelectTrigger>
-                <SelectContent>
-                  <SelectItem value="desc">Descending</SelectItem>
-                  <SelectItem value="asc">Ascending</SelectItem>
-                </SelectContent>
-              </Select>
+            {/* Sort Options */}
+            <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+              <div className="space-y-2">
+                <label className="text-sm font-medium text-foreground">Sort By</label>
+                <Select 
+                  value={searchFilters.sortBy}
+                  onValueChange={(value: any) => onSearch({ ...searchFilters, sortBy: value })}
+                >
+                  <SelectTrigger className="h-9">
+                    <SelectValue />
+                  </SelectTrigger>
+                  <SelectContent>
+                    <SelectItem value="relevance">Relevance</SelectItem>
+                    <SelectItem value="name">Name</SelectItem>
+                    <SelectItem value="date">Upload Date</SelectItem>
+                    <SelectItem value="size">File Size</SelectItem>
+                    <SelectItem value="views">View Count</SelectItem>
+                  </SelectContent>
+                </Select>
+              </div>
+
+              <div className="space-y-2">
+                <label className="text-sm font-medium text-foreground">Order</label>
+                <Select 
+                  value={searchFilters.sortOrder}
+                  onValueChange={(value: any) => onSearch({ ...searchFilters, sortOrder: value })}
+                >
+                  <SelectTrigger className="h-9">
+                    <SelectValue />
+                  </SelectTrigger>
+                  <SelectContent>
+                    <SelectItem value="desc">Descending</SelectItem>
+                    <SelectItem value="asc">Ascending</SelectItem>
+                  </SelectContent>
+                </Select>
+              </div>
             </div>
           </div>
         </div>
@@ -356,41 +362,49 @@ const SmartSearch = ({ onSearch, searchFilters, availableTags }: SmartSearchProp
 
       {/* Active Filters */}
       {hasActiveFilters && (
-        <div className="mt-4 pt-4 border-t">
-          <div className="flex items-center justify-between mb-2">
-            <span className="text-sm font-medium text-card-foreground">Active Filters:</span>
-            <Button
-              variant="ghost"
-              size="sm"
-              onClick={() => onSearch({ 
-                query: localQuery, 
-                tags: [], 
-                fileTypes: [], 
-                sortBy: 'relevance', 
-                sortOrder: 'desc' 
-              })}
-              className="h-6 text-xs"
-            >
-              Clear All
-            </Button>
-          </div>
-          <div className="flex flex-wrap gap-2">
-            {searchFilters.fileTypes.map(type => (
-              <Badge key={type} variant="secondary" className="flex items-center space-x-1">
-                <span>{FILE_TYPES.find(t => t.value === type)?.label}</span>
-                <button onClick={() => toggleFileType(type)}>
-                  <X className="h-3 w-3" />
-                </button>
-              </Badge>
-            ))}
-            {searchFilters.tags.map(tag => (
-              <Badge key={tag} variant="secondary" className="flex items-center space-x-1">
-                <span>{tag}</span>
-                <button onClick={() => toggleTag(tag)}>
-                  <X className="h-3 w-3" />
-                </button>
-              </Badge>
-            ))}
+        <div className="px-4 pb-4 border-t bg-muted/10">
+          <div className="pt-3 space-y-3">
+            <div className="flex items-center justify-between">
+              <span className="text-sm font-medium text-foreground">Active Filters</span>
+              <Button
+                variant="ghost"
+                size="sm"
+                onClick={() => onSearch({ 
+                  query: localQuery, 
+                  tags: [], 
+                  fileTypes: [], 
+                  sortBy: 'relevance', 
+                  sortOrder: 'desc' 
+                })}
+                className="h-6 text-xs hover:text-destructive"
+              >
+                Clear All
+              </Button>
+            </div>
+            <div className="flex flex-wrap gap-2">
+              {searchFilters.fileTypes.map(type => (
+                <Badge key={type} variant="secondary" className="flex items-center gap-1 pr-1">
+                  <span className="text-xs">{FILE_TYPES.find(t => t.value === type)?.label}</span>
+                  <button 
+                    onClick={() => toggleFileType(type)}
+                    className="hover:bg-secondary-foreground/20 rounded-full p-0.5"
+                  >
+                    <X className="h-2.5 w-2.5" />
+                  </button>
+                </Badge>
+              ))}
+              {searchFilters.tags.map(tag => (
+                <Badge key={tag} variant="secondary" className="flex items-center gap-1 pr-1">
+                  <span className="text-xs">{tag}</span>
+                  <button 
+                    onClick={() => toggleTag(tag)}
+                    className="hover:bg-secondary-foreground/20 rounded-full p-0.5"
+                  >
+                    <X className="h-2.5 w-2.5" />
+                  </button>
+                </Badge>
+              ))}
+            </div>
           </div>
         </div>
       )}
