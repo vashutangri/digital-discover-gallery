@@ -1,5 +1,6 @@
 
 import { useState, useEffect } from 'react';
+import { useNavigate } from 'react-router-dom';
 import { Upload, Search, Grid, List, Filter, LogOut, User, FolderPlus } from 'lucide-react';
 import { supabase } from '@/integrations/supabase/client';
 import { useAuth } from '@/hooks/useAuth';
@@ -56,6 +57,7 @@ export interface DigitalAsset {
 }
 
 const Index = () => {
+  const navigate = useNavigate();
   const { user, loading, signOut } = useAuth();
   const { toast } = useToast();
   const [assets, setAssets] = useState<DigitalAsset[]>([]);
@@ -425,6 +427,28 @@ const Index = () => {
             <Upload className="h-8 w-8 text-white animate-pulse" />
           </div>
           <p className="text-slate-600">Loading your assets...</p>
+        </div>
+      </div>
+    );
+  }
+
+  // Redirect to auth if not authenticated
+  if (!user) {
+    return (
+      <div className="min-h-screen bg-gradient-to-br from-slate-50 to-blue-50 flex items-center justify-center">
+        <div className="text-center">
+          <div className="w-16 h-16 bg-gradient-to-r from-blue-600 to-teal-600 rounded-xl flex items-center justify-center mx-auto mb-4">
+            <Upload className="h-8 w-8 text-white" />
+          </div>
+          <h1 className="text-3xl font-bold text-slate-900 mb-2">AssetHub</h1>
+          <p className="text-slate-600 mb-6">AI-Powered Digital Asset Management</p>
+          <p className="text-slate-600 mb-4">Please sign in to access your digital assets and see the enhanced metadata.</p>
+          <Button 
+            onClick={() => navigate('/auth')}
+            className="bg-gradient-to-r from-blue-600 to-teal-600 hover:from-blue-700 hover:to-teal-700"
+          >
+            Sign In
+          </Button>
         </div>
       </div>
     );
