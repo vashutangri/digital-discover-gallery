@@ -10,9 +10,10 @@ interface FileGalleryProps {
   viewMode: 'grid' | 'list';
   onAssetUpdated: (updatedAsset: DigitalAsset) => void;
   onAssetDeleted: (assetId: string) => void;
+  onAssetView?: (assetId: string) => void;
 }
 
-const FileGallery = ({ assets, viewMode, onAssetUpdated, onAssetDeleted }: FileGalleryProps) => {
+const FileGallery = ({ assets, viewMode, onAssetUpdated, onAssetDeleted, onAssetView }: FileGalleryProps) => {
   const [selectedAsset, setSelectedAsset] = useState<DigitalAsset | null>(null);
 
   const formatFileSize = (bytes: number) => {
@@ -100,7 +101,10 @@ const FileGallery = ({ assets, viewMode, onAssetUpdated, onAssetDeleted }: FileG
                   
                   <div className="flex items-center space-x-2">
                     <button
-                      onClick={() => setSelectedAsset(asset)}
+                      onClick={() => {
+                        setSelectedAsset(asset);
+                        onAssetView?.(asset.id);
+                      }}
                       className="p-2 text-slate-600 hover:text-blue-600 hover:bg-blue-50 rounded-lg transition-colors"
                     >
                       <Eye className="h-4 w-4" />
@@ -121,6 +125,7 @@ const FileGallery = ({ assets, viewMode, onAssetUpdated, onAssetDeleted }: FileG
           <FilePreviewModal
             asset={selectedAsset}
             onClose={() => setSelectedAsset(null)}
+            onAssetView={onAssetView}
           />
         )}
       </>
@@ -158,7 +163,10 @@ const FileGallery = ({ assets, viewMode, onAssetUpdated, onAssetDeleted }: FileG
               
               <div className="absolute inset-0 bg-black/0 group-hover:bg-black/20 transition-colors flex items-center justify-center opacity-0 group-hover:opacity-100">
                 <button
-                  onClick={() => setSelectedAsset(asset)}
+                  onClick={() => {
+                    setSelectedAsset(asset);
+                    onAssetView?.(asset.id);
+                  }}
                   className="bg-white/90 backdrop-blur-sm text-slate-900 px-4 py-2 rounded-lg font-medium hover:bg-white transition-colors flex items-center space-x-2"
                 >
                   <Eye className="h-4 w-4" />
@@ -205,6 +213,7 @@ const FileGallery = ({ assets, viewMode, onAssetUpdated, onAssetDeleted }: FileG
         <FilePreviewModal
           asset={selectedAsset}
           onClose={() => setSelectedAsset(null)}
+          onAssetView={onAssetView}
         />
       )}
     </>

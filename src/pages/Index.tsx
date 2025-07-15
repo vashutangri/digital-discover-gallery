@@ -30,12 +30,29 @@ export interface DigitalAsset {
   uploadDate: Date;
   tags: string[];
   description: string;
+  viewCount: number;
+  lastViewed?: Date;
+  lastModified: Date;
   metadata: {
     width?: number;
     height?: number;
     duration?: number;
     format: string;
   };
+  exifData?: {
+    dateTaken?: string;
+    cameraMaker?: string;
+    cameraModel?: string;
+    fNumber?: number;
+    iso?: number;
+    exposureTime?: string;
+    aperture?: string;
+    flashFired?: boolean;
+    exifVersion?: string;
+  };
+  aiDescription?: string;
+  aiObjects?: string[];
+  aiTextContent?: string;
 }
 
 const Index = () => {
@@ -97,9 +114,17 @@ const Index = () => {
           uploadDate: new Date(asset.upload_date),
           tags: asset.tags || [],
           description: asset.description || '',
+          viewCount: asset.view_count || 0,
+          lastViewed: asset.last_viewed ? new Date(asset.last_viewed) : undefined,
+          lastModified: new Date(asset.last_modified || asset.updated_at),
           metadata: typeof asset.metadata === 'object' && asset.metadata !== null ?
             asset.metadata as { width?: number; height?: number; duration?: number; format: string } :
             { format: 'unknown' },
+          exifData: typeof asset.exif_data === 'object' && asset.exif_data !== null ?
+            asset.exif_data as any : undefined,
+          aiDescription: asset.ai_description || undefined,
+          aiObjects: asset.ai_objects || undefined,
+          aiTextContent: asset.ai_text_content || undefined,
         }));
 
         setAssets(loadedAssets);
@@ -151,6 +176,37 @@ const Index = () => {
     const updatedAssets = [...assets, ...newAssets];
     setAssets(updatedAssets);
     setFilteredAssets(updatedAssets);
+  };
+
+  const handleAssetView = async (assetId: string) => {
+    if (!user) return;
+    
+    try {
+      await supabase.rpc('increment_view_count', { asset_id: assetId });
+      
+      // Update local state
+      setAssets(prev => prev.map(asset => 
+        asset.id === assetId 
+          ? { 
+              ...asset, 
+              viewCount: asset.viewCount + 1, 
+              lastViewed: new Date() 
+            }
+          : asset
+      ));
+      
+      setFilteredAssets(prev => prev.map(asset => 
+        asset.id === assetId 
+          ? { 
+              ...asset, 
+              viewCount: asset.viewCount + 1, 
+              lastViewed: new Date() 
+            }
+          : asset
+      ));
+    } catch (error) {
+      console.error('Error tracking view:', error);
+    }
   };
 
   const handleNavigateToFolder = async (folderId: string | null) => {
@@ -522,6 +578,7 @@ const Index = () => {
               viewMode={viewMode}
               onAssetUpdated={handleAssetUpdated}
               onAssetDeleted={handleAssetDeleted}
+              onAssetView={handleAssetView}
             />
           </div>
         </div>

@@ -210,9 +210,17 @@ const FileUploadZone = ({ onFilesUploaded, isAnalyzing, setIsAnalyzing, currentF
           uploadDate: new Date(assetData.upload_date),
           tags: assetData.tags || [],
           description: assetData.description || '',
+          viewCount: assetData.view_count || 0,
+          lastViewed: assetData.last_viewed ? new Date(assetData.last_viewed) : undefined,
+          lastModified: new Date(assetData.last_modified || assetData.updated_at),
           metadata: typeof assetData.metadata === 'object' && assetData.metadata !== null ? 
             assetData.metadata as { width?: number; height?: number; duration?: number; format: string } : 
             { format: file.type },
+          exifData: typeof assetData.exif_data === 'object' && assetData.exif_data !== null ?
+            assetData.exif_data as any : undefined,
+          aiDescription: assetData.ai_description || undefined,
+          aiObjects: assetData.ai_objects || undefined,
+          aiTextContent: assetData.ai_text_content || undefined,
         };
 
         newAssets.push(asset);

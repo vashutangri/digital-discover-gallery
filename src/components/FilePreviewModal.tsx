@@ -1,13 +1,14 @@
 
-import { X, Download, Tag, Calendar, HardDrive, Image as ImageIcon, Video } from 'lucide-react';
+import { X, Download, Tag, Calendar, HardDrive, Image as ImageIcon, Video, Eye, Camera, Aperture, Clock, Globe } from 'lucide-react';
 import { DigitalAsset } from '../pages/Index';
 
 interface FilePreviewModalProps {
   asset: DigitalAsset;
   onClose: () => void;
+  onAssetView?: (assetId: string) => void;
 }
 
-const FilePreviewModal = ({ asset, onClose }: FilePreviewModalProps) => {
+const FilePreviewModal = ({ asset, onClose, onAssetView }: FilePreviewModalProps) => {
   const formatFileSize = (bytes: number) => {
     if (bytes === 0) return '0 Bytes';
     const k = 1024;
@@ -87,70 +88,214 @@ const FilePreviewModal = ({ asset, onClose }: FilePreviewModalProps) => {
           </div>
 
           {/* Details */}
-          <div className="w-full lg:w-80 p-6 border-l border-slate-200 overflow-y-auto">
+          <div className="w-full lg:w-96 p-6 border-l border-slate-200 overflow-y-auto">
             <div className="space-y-6">
-              {/* Description */}
+              {/* File Details Header */}
               <div>
-                <h3 className="font-semibold text-slate-900 mb-2">Description</h3>
-                <p className="text-slate-700 text-sm leading-relaxed">{asset.description}</p>
+                <h3 className="font-semibold text-slate-900 mb-4 text-lg">File Details</h3>
               </div>
 
-              {/* Tags */}
+              {/* Basic File Information */}
               <div>
-                <h3 className="font-semibold text-slate-900 mb-3 flex items-center space-x-2">
-                  <Tag className="h-4 w-4" />
-                  <span>Tags</span>
-                </h3>
-                <div className="flex flex-wrap gap-2">
-                  {asset.tags.map(tag => (
-                    <span
-                      key={tag}
-                      className="inline-block bg-blue-100 text-blue-800 px-3 py-1 rounded-full text-sm font-medium"
-                    >
-                      {tag}
-                    </span>
-                  ))}
-                </div>
-              </div>
-
-              {/* File Info */}
-              <div>
-                <h3 className="font-semibold text-slate-900 mb-3">File Information</h3>
-                <div className="space-y-3 text-sm">
-                  <div className="flex items-center space-x-2">
-                    <HardDrive className="h-4 w-4 text-slate-500" />
+                <h4 className="font-medium text-slate-900 mb-3">Basic Information</h4>
+                <div className="space-y-2 text-sm">
+                  <div className="flex justify-between">
+                    <span className="text-slate-600">File Name:</span>
+                    <span className="font-medium text-right">{asset.name}</span>
+                  </div>
+                  <div className="flex justify-between">
                     <span className="text-slate-600">Size:</span>
                     <span className="font-medium">{formatFileSize(asset.size)}</span>
                   </div>
-                  
-                  <div className="flex items-center space-x-2">
-                    <Calendar className="h-4 w-4 text-slate-500" />
-                    <span className="text-slate-600">Uploaded:</span>
+                  <div className="flex justify-between">
+                    <span className="text-slate-600">Added:</span>
                     <span className="font-medium">{formatDate(asset.uploadDate)}</span>
                   </div>
-                  
-                  {asset.metadata.width && asset.metadata.height && (
-                    <div className="flex items-center space-x-2">
-                      <ImageIcon className="h-4 w-4 text-slate-500" />
-                      <span className="text-slate-600">Dimensions:</span>
-                      <span className="font-medium">
-                        {asset.metadata.width} × {asset.metadata.height}
-                      </span>
+                  <div className="flex justify-between">
+                    <span className="text-slate-600">Last Modified:</span>
+                    <span className="font-medium">{formatDate(asset.lastModified)}</span>
+                  </div>
+                </div>
+              </div>
+
+              {/* View Statistics */}
+              <div>
+                <h4 className="font-medium text-slate-900 mb-3 flex items-center space-x-2">
+                  <Eye className="h-4 w-4" />
+                  <span>View Statistics</span>
+                </h4>
+                <div className="space-y-2 text-sm">
+                  <div className="flex justify-between">
+                    <span className="text-slate-600">View count:</span>
+                    <span className="font-medium">{asset.viewCount}</span>
+                  </div>
+                  {asset.lastViewed && (
+                    <div className="flex justify-between">
+                      <span className="text-slate-600">Last viewed:</span>
+                      <span className="font-medium">{formatDate(asset.lastViewed)}</span>
                     </div>
                   )}
-                  
-                  {asset.metadata.duration && (
-                    <div className="flex items-center space-x-2">
-                      <Video className="h-4 w-4 text-slate-500" />
+                </div>
+              </div>
+
+              {/* EXIF Data for Images */}
+              {asset.type === 'image' && asset.exifData && Object.keys(asset.exifData).length > 0 && (
+                <div>
+                  <h4 className="font-medium text-slate-900 mb-3 flex items-center space-x-2">
+                    <Camera className="h-4 w-4" />
+                    <span>EXIF Data</span>
+                  </h4>
+                  <div className="space-y-2 text-sm">
+                    {asset.exifData.dateTaken && (
+                      <div className="flex justify-between">
+                        <span className="text-slate-600">Date taken:</span>
+                        <span className="font-medium">{asset.exifData.dateTaken}</span>
+                      </div>
+                    )}
+                    {asset.metadata.width && asset.metadata.height && (
+                      <div className="flex justify-between">
+                        <span className="text-slate-600">Width x Height:</span>
+                        <span className="font-medium">{asset.metadata.width} x {asset.metadata.height}</span>
+                      </div>
+                    )}
+                    {asset.exifData.cameraMaker && (
+                      <div className="flex justify-between">
+                        <span className="text-slate-600">Camera maker:</span>
+                        <span className="font-medium">{asset.exifData.cameraMaker}</span>
+                      </div>
+                    )}
+                    {asset.exifData.cameraModel && (
+                      <div className="flex justify-between">
+                        <span className="text-slate-600">Camera model:</span>
+                        <span className="font-medium">{asset.exifData.cameraModel}</span>
+                      </div>
+                    )}
+                    {asset.exifData.fNumber && (
+                      <div className="flex justify-between">
+                        <span className="text-slate-600">F-Number:</span>
+                        <span className="font-medium">f/{asset.exifData.fNumber}</span>
+                      </div>
+                    )}
+                    {asset.exifData.iso && (
+                      <div className="flex justify-between">
+                        <span className="text-slate-600">ISO:</span>
+                        <span className="font-medium">{asset.exifData.iso}</span>
+                      </div>
+                    )}
+                    {asset.exifData.exposureTime && (
+                      <div className="flex justify-between">
+                        <span className="text-slate-600">Exposure:</span>
+                        <span className="font-medium">{asset.exifData.exposureTime}</span>
+                      </div>
+                    )}
+                    {asset.exifData.aperture && (
+                      <div className="flex justify-between">
+                        <span className="text-slate-600">Aperture:</span>
+                        <span className="font-medium">{asset.exifData.aperture}</span>
+                      </div>
+                    )}
+                    {asset.exifData.flashFired !== undefined && (
+                      <div className="flex justify-between">
+                        <span className="text-slate-600">Flash fired:</span>
+                        <span className="font-medium">{asset.exifData.flashFired ? 'yes' : 'no'}</span>
+                      </div>
+                    )}
+                  </div>
+                </div>
+              )}
+
+              {/* Video Duration for Videos */}
+              {asset.type === 'video' && asset.metadata.duration && (
+                <div>
+                  <h4 className="font-medium text-slate-900 mb-3 flex items-center space-x-2">
+                    <Video className="h-4 w-4" />
+                    <span>Video Details</span>
+                  </h4>
+                  <div className="space-y-2 text-sm">
+                    <div className="flex justify-between">
                       <span className="text-slate-600">Duration:</span>
                       <span className="font-medium">
                         {Math.floor(asset.metadata.duration / 60)}:
                         {String(Math.floor(asset.metadata.duration % 60)).padStart(2, '0')}
                       </span>
                     </div>
-                  )}
+                    {asset.metadata.width && asset.metadata.height && (
+                      <div className="flex justify-between">
+                        <span className="text-slate-600">Resolution:</span>
+                        <span className="font-medium">{asset.metadata.width} × {asset.metadata.height}</span>
+                      </div>
+                    )}
+                  </div>
                 </div>
-              </div>
+              )}
+
+              {/* Description */}
+              {asset.description && (
+                <div>
+                  <h4 className="font-medium text-slate-900 mb-3">Description</h4>
+                  <p className="text-slate-700 text-sm leading-relaxed">{asset.description}</p>
+                </div>
+              )}
+
+              {/* Tags */}
+              {asset.tags && asset.tags.length > 0 && (
+                <div>
+                  <h4 className="font-medium text-slate-900 mb-3 flex items-center space-x-2">
+                    <Tag className="h-4 w-4" />
+                    <span>Tags</span>
+                  </h4>
+                  <div className="flex flex-wrap gap-2">
+                    {asset.tags.map(tag => (
+                      <span
+                        key={tag}
+                        className="inline-block bg-blue-100 text-blue-800 px-3 py-1 rounded-full text-sm font-medium"
+                      >
+                        {tag}
+                      </span>
+                    ))}
+                  </div>
+                </div>
+              )}
+
+              {/* AI-Generated Description */}
+              {asset.aiDescription && (
+                <div>
+                  <h4 className="font-medium text-slate-900 mb-3 flex items-center space-x-2">
+                    <Globe className="h-4 w-4" />
+                    <span>AI-Generated Description</span>
+                  </h4>
+                  <p className="text-slate-700 text-sm leading-relaxed">{asset.aiDescription}</p>
+                </div>
+              )}
+
+              {/* AI-Recognized Objects */}
+              {asset.aiObjects && asset.aiObjects.length > 0 && (
+                <div>
+                  <h4 className="font-medium text-slate-900 mb-3">AI-Recognized Objects</h4>
+                  <div className="flex flex-wrap gap-1">
+                    {asset.aiObjects.map((object, index) => (
+                      <span
+                        key={index}
+                        className="inline-block bg-green-100 text-green-800 px-2 py-1 rounded-md text-xs"
+                      >
+                        {object}
+                      </span>
+                    ))}
+                  </div>
+                </div>
+              )}
+
+              {/* AI-Recognized Text (OCR) */}
+              {asset.aiTextContent && (
+                <div>
+                  <h4 className="font-medium text-slate-900 mb-3">Recognized Text (OCR)</h4>
+                  <div className="bg-slate-50 p-3 rounded-lg">
+                    <p className="text-slate-700 text-sm font-mono leading-relaxed whitespace-pre-wrap">
+                      {asset.aiTextContent}
+                    </p>
+                  </div>
+                </div>
+              )}
             </div>
           </div>
         </div>

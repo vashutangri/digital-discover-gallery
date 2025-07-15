@@ -16,10 +16,16 @@ export type Database = {
     Tables: {
       digital_assets: {
         Row: {
+          ai_description: string | null
+          ai_objects: string[] | null
+          ai_text_content: string | null
           created_at: string
           description: string | null
+          exif_data: Json | null
           folder_id: string | null
           id: string
+          last_modified: string | null
+          last_viewed: string | null
           metadata: Json | null
           name: string
           size: number
@@ -30,12 +36,19 @@ export type Database = {
           upload_date: string
           url: string
           user_id: string
+          view_count: number | null
         }
         Insert: {
+          ai_description?: string | null
+          ai_objects?: string[] | null
+          ai_text_content?: string | null
           created_at?: string
           description?: string | null
+          exif_data?: Json | null
           folder_id?: string | null
           id?: string
+          last_modified?: string | null
+          last_viewed?: string | null
           metadata?: Json | null
           name: string
           size: number
@@ -46,12 +59,19 @@ export type Database = {
           upload_date?: string
           url: string
           user_id: string
+          view_count?: number | null
         }
         Update: {
+          ai_description?: string | null
+          ai_objects?: string[] | null
+          ai_text_content?: string | null
           created_at?: string
           description?: string | null
+          exif_data?: Json | null
           folder_id?: string | null
           id?: string
+          last_modified?: string | null
+          last_viewed?: string | null
           metadata?: Json | null
           name?: string
           size?: number
@@ -62,6 +82,7 @@ export type Database = {
           upload_date?: string
           url?: string
           user_id?: string
+          view_count?: number | null
         }
         Relationships: [
           {
@@ -113,7 +134,10 @@ export type Database = {
       [_ in never]: never
     }
     Functions: {
-      [_ in never]: never
+      increment_view_count: {
+        Args: { asset_id: string }
+        Returns: undefined
+      }
     }
     Enums: {
       [_ in never]: never
