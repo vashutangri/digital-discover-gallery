@@ -1,6 +1,6 @@
 
 import { X, Download, Tag, Calendar, HardDrive, Image as ImageIcon, Video, Eye, Camera, Aperture, Clock, Globe } from 'lucide-react';
-import { DigitalAsset } from '../pages/Index';
+import { DigitalAsset } from '../utils/searchUtils';
 
 interface FilePreviewModalProps {
   asset: DigitalAsset;

@@ -1,7 +1,7 @@
 
 import { useState } from 'react';
 import { Calendar, Tag, Image as ImageIcon, Video, Eye, Download, MoreHorizontal } from 'lucide-react';
-import { DigitalAsset } from '../pages/Index';
+import { DigitalAsset } from '../utils/searchUtils';
 import FilePreviewModal from './FilePreviewModal';
 import { FileActions } from './FileActions';
 

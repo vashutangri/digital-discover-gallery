@@ -14,47 +14,12 @@ import {
 import { useToast } from '@/hooks/use-toast';
 import FileUploadZone from '../components/FileUploadZone';
 import FileGallery from '../components/FileGallery';
-import SearchBar from '../components/SearchBar';
-import FilterPanel from '../components/FilterPanel';
+import SmartSearch, { SearchFilters } from '../components/SmartSearch';
+import { performSmartSearch, DigitalAsset } from '../utils/searchUtils';
 import { FolderBreadcrumb } from '../components/FolderBreadcrumb';
 import { CreateFolderModal } from '../components/CreateFolderModal';
 import { FolderCard } from '../components/FolderCard';
 import { Folder } from '@/types/folder';
-
-export interface DigitalAsset {
-  id: string;
-  name: string;
-  type: 'image' | 'video';
-  size: number;
-  url: string;
-  thumbnail: string;
-  uploadDate: Date;
-  tags: string[];
-  description: string;
-  viewCount: number;
-  lastViewed?: Date;
-  lastModified: Date;
-  metadata: {
-    width?: number;
-    height?: number;
-    duration?: number;
-    format: string;
-  };
-  exifData?: {
-    dateTaken?: string;
-    cameraMaker?: string;
-    cameraModel?: string;
-    fNumber?: number;
-    iso?: number;
-    exposureTime?: string;
-    aperture?: string;
-    flashFired?: boolean;
-    exifVersion?: string;
-  };
-  aiDescription?: string;
-  aiObjects?: string[];
-  aiTextContent?: string;
-}
 
 const Index = () => {
   const navigate = useNavigate();
@@ -65,8 +30,13 @@ const Index = () => {
   const [filteredAssets, setFilteredAssets] = useState<DigitalAsset[]>([]);
   const [currentFolder, setCurrentFolder] = useState<Folder | null>(null);
   const [folderPath, setFolderPath] = useState<Folder[]>([]);
-  const [searchQuery, setSearchQuery] = useState('');
-  const [selectedTags, setSelectedTags] = useState<string[]>([]);
+  const [searchFilters, setSearchFilters] = useState<SearchFilters>({
+    query: '',
+    tags: [],
+    fileTypes: [],
+    sortBy: 'relevance',
+    sortOrder: 'desc'
+  });
   const [viewMode, setViewMode] = useState<'grid' | 'list'>('grid');
   const [isAnalyzing, setIsAnalyzing] = useState(false);
   const [showCreateFolderModal, setShowCreateFolderModal] = useState(false);
@@ -393,26 +363,9 @@ const Index = () => {
     setFilteredAssets(prev => prev.filter(asset => asset.id !== assetId));
   };
 
-  const handleSearch = (query: string, tags: string[]) => {
-    setSearchQuery(query);
-    setSelectedTags(tags);
-    
-    let filtered = assets;
-    
-    if (query) {
-      filtered = filtered.filter(asset => 
-        asset.name.toLowerCase().includes(query.toLowerCase()) ||
-        asset.description.toLowerCase().includes(query.toLowerCase()) ||
-        asset.tags.some(tag => tag.toLowerCase().includes(query.toLowerCase()))
-      );
-    }
-    
-    if (tags.length > 0) {
-      filtered = filtered.filter(asset =>
-        tags.every(tag => asset.tags.includes(tag))
-      );
-    }
-    
+  const handleSmartSearch = (filters: SearchFilters) => {
+    setSearchFilters(filters);
+    const filtered = performSmartSearch(assets, filters);
     setFilteredAssets(filtered);
   };
 
@@ -516,19 +469,13 @@ const Index = () => {
         <div className="grid grid-cols-1 lg:grid-cols-4 gap-8">
           {/* Sidebar */}
           <div className="lg:col-span-1 space-y-6">
-            <SearchBar 
-              onSearch={handleSearch}
-              searchQuery={searchQuery}
-              selectedTags={selectedTags}
-            />
-            
-            <FilterPanel 
+            <SmartSearch 
+              onSearch={handleSmartSearch}
+              searchFilters={searchFilters}
               availableTags={allTags}
-              selectedTags={selectedTags}
-              onTagsChange={(tags) => handleSearch(searchQuery, tags)}
             />
 
-            <div className="bg-white rounded-xl p-6 shadow-sm border border-slate-200">
+            <div className="bg-card rounded-xl p-6 shadow-sm border">
               <h3 className="font-semibold text-slate-900 mb-4">Statistics</h3>
               <div className="space-y-3">
                 <div className="flex justify-between">

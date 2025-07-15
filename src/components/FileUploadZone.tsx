@@ -1,7 +1,7 @@
 
 import { useCallback, useState } from 'react';
 import { Upload, Image as ImageIcon, Video, FileText, Loader } from 'lucide-react';
-import { DigitalAsset } from '../pages/Index';
+import { DigitalAsset } from '../utils/searchUtils';
 import { extractImageMetadata, extractVideoMetadata, detectObjects, extractText, generateDescription } from '@/utils/metadataExtractor';
 import { supabase } from '@/integrations/supabase/client';
 import { useAuth } from '@/hooks/useAuth';

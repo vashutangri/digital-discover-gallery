@@ -21,7 +21,7 @@ import { Textarea } from '@/components/ui/textarea';
 import { useToast } from '@/hooks/use-toast';
 import { supabase } from '@/integrations/supabase/client';
 import { useAuth } from '@/hooks/useAuth';
-import { DigitalAsset } from '@/pages/Index';
+import { DigitalAsset } from '@/utils/searchUtils';
 
 interface FileActionsProps {
   asset: DigitalAsset;
