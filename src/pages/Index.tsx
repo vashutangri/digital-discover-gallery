@@ -52,20 +52,6 @@ const Index = () => {
   const [isAnalyzing, setIsAnalyzing] = useState(false);
   const [showCreateFolderModal, setShowCreateFolderModal] = useState(false);
 
-  // Show loading state while authentication is loading
-  if (loading) {
-    return (
-      <div className="min-h-screen bg-gradient-to-br from-slate-50 to-blue-50 flex items-center justify-center">
-        <div className="text-center">
-          <div className="w-16 h-16 bg-gradient-to-r from-blue-600 to-teal-600 rounded-xl flex items-center justify-center mx-auto mb-4">
-            <Upload className="h-8 w-8 text-white animate-pulse" />
-          </div>
-          <p className="text-slate-600">Loading your assets...</p>
-        </div>
-      </div>
-    );
-  }
-
   // Load user's assets and folders when they sign in
   useEffect(() => {
     const loadData = async () => {
@@ -373,6 +359,20 @@ const Index = () => {
   };
 
   const allTags = [...new Set(assets.flatMap(asset => asset.tags))];
+
+  // Show loading state while authentication is loading
+  if (loading) {
+    return (
+      <div className="min-h-screen bg-gradient-to-br from-slate-50 to-blue-50 flex items-center justify-center">
+        <div className="text-center">
+          <div className="w-16 h-16 bg-gradient-to-r from-blue-600 to-teal-600 rounded-xl flex items-center justify-center mx-auto mb-4">
+            <Upload className="h-8 w-8 text-white animate-pulse" />
+          </div>
+          <p className="text-slate-600">Loading your assets...</p>
+        </div>
+      </div>
+    );
+  }
 
   return (
     <div className="min-h-screen bg-gradient-to-br from-slate-50 to-blue-50">
