@@ -2,7 +2,7 @@
 import { useCallback, useState } from 'react';
 import { Upload, Image as ImageIcon, Video, FileText, Loader } from 'lucide-react';
 import { DigitalAsset } from '../pages/Index';
-import { analyzeImageContent } from '../utils/aiAnalysis';
+import { extractImageMetadata, extractVideoMetadata, detectObjects, extractText, generateDescription } from '@/utils/metadataExtractor';
 import { supabase } from '@/integrations/supabase/client';
 import { useAuth } from '@/hooks/useAuth';
 
@@ -121,62 +121,50 @@ const FileUploadZone = ({ onFilesUploaded, isAnalyzing, setIsAnalyzing, currentF
 
         let tags: string[] = [];
         let description = '';
-        let metadata = {
-          format: file.type,
-          width: undefined as number | undefined,
-          height: undefined as number | undefined,
-          duration: undefined as number | undefined,
-        };
+        let aiDescription = '';
+        let aiObjects: string[] = [];
+        let aiTextContent = '';
+        let extractedMetadata;
+        let exifData = {};
 
-        // Create object URL for analysis
-        const tempUrl = URL.createObjectURL(file);
-
+        // Extract comprehensive metadata
         if (!isVideo) {
-          // Analyze image content with AI
+          // Extract image metadata including EXIF
+          extractedMetadata = await extractImageMetadata(file);
+          
+          // AI analysis for enhanced data
           try {
-            const analysis = await analyzeImageContent(tempUrl);
-            tags = analysis.tags;
-            description = analysis.description;
+            const [objects, text, aiDesc] = await Promise.all([
+              detectObjects(publicUrl),
+              extractText(publicUrl),
+              generateDescription(publicUrl)
+            ]);
+            
+            aiObjects = objects;
+            aiTextContent = text;
+            aiDescription = aiDesc;
+            
+            // Set basic tags and description
+            tags = objects.slice(0, 5); // Use first 5 detected objects as tags
+            description = aiDesc;
           } catch (error) {
             console.error('AI analysis failed:', error);
             tags = ['image'];
             description = 'Image file';
           }
-
-          // Get image dimensions
-          const img = new Image();
-          await new Promise((resolve) => {
-            img.onload = () => {
-              metadata.width = img.width;
-              metadata.height = img.height;
-              resolve(true);
-            };
-            img.src = tempUrl;
-          });
+          
+          exifData = extractedMetadata.exifData || {};
         } else {
-          // Basic video handling
+          // Extract video metadata
+          extractedMetadata = await extractVideoMetadata(file);
           tags = ['video'];
           description = 'Video file';
-          
-          // Get video metadata
-          const video = document.createElement('video');
-          await new Promise((resolve) => {
-            video.onloadedmetadata = () => {
-              metadata.width = video.videoWidth;
-              metadata.height = video.videoHeight;
-              metadata.duration = video.duration;
-              resolve(true);
-            };
-            video.src = tempUrl;
-          });
+          aiDescription = 'A video file uploaded to the system.';
         }
-
-        // Clean up temporary URL
-        URL.revokeObjectURL(tempUrl);
 
         setUploadProgress(prev => ({ ...prev, [fileId]: 80 }));
 
-        // Save asset metadata to database
+        // Save asset metadata to database with comprehensive data
         const { data: assetData, error: dbError } = await supabase
           .from('digital_assets')
           .insert({
@@ -190,7 +178,11 @@ const FileUploadZone = ({ onFilesUploaded, isAnalyzing, setIsAnalyzing, currentF
             folder_id: targetFolderId,
             tags,
             description,
-            metadata,
+            metadata: extractedMetadata?.basicMetadata || { format: file.type },
+            exif_data: exifData,
+            ai_description: aiDescription,
+            ai_objects: aiObjects,
+            ai_text_content: aiTextContent,
           })
           .select()
           .single();

@@ -101,14 +101,18 @@ const FilePreviewModal = ({ asset, onClose, onAssetView }: FilePreviewModalProps
                 <div className="space-y-2 text-sm">
                   <div className="flex justify-between">
                     <span className="text-slate-600">File Name:</span>
-                    <span className="font-medium text-right">{asset.name}</span>
+                    <span className="font-medium text-right break-all">{asset.name}</span>
+                  </div>
+                  <div className="flex justify-between">
+                    <span className="text-slate-600">Image Location:</span>
+                    <span className="font-medium text-right">Home &gt; Assets &gt; {asset.name}</span>
                   </div>
                   <div className="flex justify-between">
                     <span className="text-slate-600">Size:</span>
                     <span className="font-medium">{formatFileSize(asset.size)}</span>
                   </div>
                   <div className="flex justify-between">
-                    <span className="text-slate-600">Added:</span>
+                    <span className="text-slate-600">Added to AssetHub:</span>
                     <span className="font-medium">{formatDate(asset.uploadDate)}</span>
                   </div>
                   <div className="flex justify-between">
