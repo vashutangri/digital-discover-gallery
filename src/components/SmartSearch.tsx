@@ -179,21 +179,21 @@ const SmartSearch = ({ onSearch, searchFilters, availableTags }: SmartSearchProp
             onKeyPress={(e) => e.key === 'Enter' && handleSearch()}
             onFocus={() => localQuery.length > 1 && setShowSuggestions(true)}
             onBlur={() => setTimeout(() => setShowSuggestions(false), 200)}
-            placeholder="Search by name, tags, content... (use quotes for exact match)"
-            className="pl-10 pr-20 h-10"
+            placeholder="Search by name, tags, content..."
+            className={`pl-10 h-10 ${localQuery ? 'pr-24' : 'pr-16'}`}
           />
-          <div className="absolute right-2 top-1/2 transform -translate-y-1/2 flex items-center gap-1">
+          <div className="absolute right-1 top-1/2 transform -translate-y-1/2 flex items-center gap-1">
             {localQuery && (
               <Button
                 variant="ghost"
                 size="sm"
                 onClick={clearSearch}
-                className="h-6 w-6 p-0 hover:bg-muted"
+                className="h-7 w-7 p-0 hover:bg-muted rounded-md"
               >
                 <X className="h-3 w-3" />
               </Button>
             )}
-            <Button onClick={handleSearch} size="sm" className="h-8 px-3">
+            <Button onClick={handleSearch} size="sm" className="h-8 px-2.5 text-xs">
               Search
             </Button>
           </div>
