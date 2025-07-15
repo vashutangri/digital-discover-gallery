@@ -234,10 +234,12 @@ const FilePreviewModal = ({ asset, onClose, onAssetView }: FilePreviewModalProps
               )}
 
               {/* Description */}
-              {asset.description && (
+              {(asset.description || asset.aiDescription) && (
                 <div>
                   <h4 className="font-medium text-slate-900 mb-3">Description</h4>
-                  <p className="text-slate-700 text-sm leading-relaxed">{asset.description}</p>
+                  <p className="text-slate-700 text-sm leading-relaxed">
+                    {asset.description || asset.aiDescription}
+                  </p>
                 </div>
               )}
 
@@ -258,17 +260,6 @@ const FilePreviewModal = ({ asset, onClose, onAssetView }: FilePreviewModalProps
                       </span>
                     ))}
                   </div>
-                </div>
-              )}
-
-              {/* AI-Generated Description */}
-              {asset.aiDescription && (
-                <div>
-                  <h4 className="font-medium text-slate-900 mb-3 flex items-center space-x-2">
-                    <Globe className="h-4 w-4" />
-                    <span>AI-Generated Description</span>
-                  </h4>
-                  <p className="text-slate-700 text-sm leading-relaxed">{asset.aiDescription}</p>
                 </div>
               )}
 
