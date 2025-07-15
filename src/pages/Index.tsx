@@ -429,18 +429,6 @@ const Index = () => {
               </DropdownMenu>
             </div>
           </div>
-          
-          <div className="flex items-center mt-4">
-            <Button
-              variant="outline"
-              size="sm"
-              onClick={() => setShowCreateFolderModal(true)}
-              className="text-slate-600 hover:text-slate-900"
-            >
-              <FolderPlus className="h-4 w-4 mr-2" />
-              New Folder
-            </Button>
-          </div>
         </div>
       </header>
 
@@ -485,11 +473,23 @@ const Index = () => {
 
           {/* Main Content */}
           <div className="lg:col-span-3 space-y-6">
-            <FolderBreadcrumb
-              currentFolder={currentFolder}
-              folderPath={folderPath}
-              onNavigateToFolder={handleNavigateToFolder}
-            />
+            <div className="flex items-center justify-between">
+              <FolderBreadcrumb
+                currentFolder={currentFolder}
+                folderPath={folderPath}
+                onNavigateToFolder={handleNavigateToFolder}
+              />
+              
+              <Button
+                variant="outline"
+                size="sm"
+                onClick={() => setShowCreateFolderModal(true)}
+                className="text-slate-600 hover:text-slate-900"
+              >
+                <FolderPlus className="h-4 w-4 mr-2" />
+                New Folder
+              </Button>
+            </div>
 
             <FileUploadZone 
               onFilesUploaded={handleFilesUploaded}
