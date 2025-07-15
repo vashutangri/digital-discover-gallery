@@ -516,23 +516,6 @@ const Index = () => {
               </div>
             )}
 
-            {/* Show message if no folders and no assets */}
-            {folders.length === 0 && assets.length === 0 && (
-              <div className="bg-white rounded-xl p-12 text-center shadow-sm border border-slate-200">
-                <div className="w-20 h-20 bg-slate-100 rounded-full flex items-center justify-center mx-auto mb-4">
-                  <FolderPlus className="h-10 w-10 text-slate-400" />
-                </div>
-                <h3 className="text-lg font-medium text-slate-900 mb-2">Create your first folder</h3>
-                <p className="text-slate-600 mb-4">Organize your assets by creating folders and uploading files.</p>
-                <Button 
-                  onClick={() => setShowCreateFolderModal(true)}
-                  className="bg-gradient-to-r from-blue-600 to-teal-600 text-white hover:from-blue-700 hover:to-teal-700"
-                >
-                  <FolderPlus className="h-4 w-4 mr-2" />
-                  Create Folder
-                </Button>
-              </div>
-            )}
             
             <FileGallery 
               assets={filteredAssets}
