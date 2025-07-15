@@ -1,6 +1,7 @@
 
 import { useState } from 'react';
 import { Calendar, Tag, Image as ImageIcon, Video, Eye, Download, MoreHorizontal } from 'lucide-react';
+import { Checkbox } from '@/components/ui/checkbox';
 import { DigitalAsset } from '../utils/searchUtils';
 import FilePreviewModal from './FilePreviewModal';
 import { FileActions } from './FileActions';
@@ -11,9 +12,12 @@ interface FileGalleryProps {
   onAssetUpdated: (updatedAsset: DigitalAsset) => void;
   onAssetDeleted: (assetId: string) => void;
   onAssetView?: (assetId: string) => void;
+  isSelectionMode?: boolean;
+  selectedAssets?: string[];
+  onAssetSelect?: (assetId: string, selected: boolean) => void;
 }
 
-const FileGallery = ({ assets, viewMode, onAssetUpdated, onAssetDeleted, onAssetView }: FileGalleryProps) => {
+const FileGallery = ({ assets, viewMode, onAssetUpdated, onAssetDeleted, onAssetView, isSelectionMode = false, selectedAssets = [], onAssetSelect }: FileGalleryProps) => {
   const [selectedAsset, setSelectedAsset] = useState<DigitalAsset | null>(null);
 
   const formatFileSize = (bytes: number) => {
@@ -54,8 +58,27 @@ const FileGallery = ({ assets, viewMode, onAssetUpdated, onAssetDeleted, onAsset
           
           <div className="divide-y divide-slate-200">
             {assets.map(asset => (
-              <div key={asset.id} className="px-6 py-4 hover:bg-slate-50 transition-colors">
+              <div 
+                key={asset.id} 
+                className={`px-6 py-4 hover:bg-slate-50 transition-colors ${
+                  selectedAssets.includes(asset.id) ? 'bg-blue-50 border-l-4 border-blue-500' : ''
+                }`}
+                onClick={() => {
+                  if (isSelectionMode) {
+                    onAssetSelect?.(asset.id, !selectedAssets.includes(asset.id));
+                  }
+                }}
+              >
                 <div className="flex items-center space-x-4">
+                  {isSelectionMode && (
+                    <Checkbox
+                      checked={selectedAssets.includes(asset.id)}
+                      onCheckedChange={(checked) => 
+                        onAssetSelect?.(asset.id, checked as boolean)
+                      }
+                      onClick={(e) => e.stopPropagation()}
+                    />
+                  )}
                   <div className="flex-shrink-0">
                     <img
                       src={asset.thumbnail}
@@ -138,7 +161,17 @@ const FileGallery = ({ assets, viewMode, onAssetUpdated, onAssetDeleted, onAsset
         {assets.map(asset => (
           <div
             key={asset.id}
-            className="bg-white rounded-xl shadow-sm border border-slate-200 overflow-hidden hover:shadow-md transition-all duration-200 hover:scale-[1.02] group"
+            className={`bg-white rounded-xl shadow-sm border overflow-hidden hover:shadow-md transition-all duration-200 hover:scale-[1.02] group cursor-pointer ${
+              selectedAssets.includes(asset.id) ? 'border-blue-500 ring-2 ring-blue-200' : 'border-slate-200'
+            }`}
+            onClick={() => {
+              if (isSelectionMode) {
+                onAssetSelect?.(asset.id, !selectedAssets.includes(asset.id));
+              } else {
+                setSelectedAsset(asset);
+                onAssetView?.(asset.id);
+              }
+            }}
           >
             <div className="relative aspect-square bg-slate-100">
               <img
@@ -147,7 +180,17 @@ const FileGallery = ({ assets, viewMode, onAssetUpdated, onAssetDeleted, onAsset
                 className="w-full h-full object-cover"
               />
               
-              <div className="absolute top-2 left-2">
+              <div className="absolute top-2 left-2 flex items-center gap-2">
+                {isSelectionMode && (
+                  <Checkbox
+                    checked={selectedAssets.includes(asset.id)}
+                    onCheckedChange={(checked) => 
+                      onAssetSelect?.(asset.id, checked as boolean)
+                    }
+                    onClick={(e) => e.stopPropagation()}
+                    className="bg-white/90 border-2"
+                  />
+                )}
                 {asset.type === 'video' ? (
                   <div className="bg-purple-600 text-white px-2 py-1 rounded-md text-xs font-medium flex items-center space-x-1">
                     <Video className="h-3 w-3" />
@@ -161,18 +204,21 @@ const FileGallery = ({ assets, viewMode, onAssetUpdated, onAssetDeleted, onAsset
                 )}
               </div>
               
-              <div className="absolute inset-0 bg-black/0 group-hover:bg-black/20 transition-colors flex items-center justify-center opacity-0 group-hover:opacity-100">
-                <button
-                  onClick={() => {
-                    setSelectedAsset(asset);
-                    onAssetView?.(asset.id);
-                  }}
-                  className="bg-white/90 backdrop-blur-sm text-slate-900 px-4 py-2 rounded-lg font-medium hover:bg-white transition-colors flex items-center space-x-2"
-                >
-                  <Eye className="h-4 w-4" />
-                  <span>Preview</span>
-                </button>
-              </div>
+              {!isSelectionMode && (
+                <div className="absolute inset-0 bg-black/0 group-hover:bg-black/20 transition-colors flex items-center justify-center opacity-0 group-hover:opacity-100">
+                  <button
+                    onClick={(e) => {
+                      e.stopPropagation();
+                      setSelectedAsset(asset);
+                      onAssetView?.(asset.id);
+                    }}
+                    className="bg-white/90 backdrop-blur-sm text-slate-900 px-4 py-2 rounded-lg font-medium hover:bg-white transition-colors flex items-center space-x-2"
+                  >
+                    <Eye className="h-4 w-4" />
+                    <span>Preview</span>
+                  </button>
+                </div>
+              )}
             </div>
             
             <div className="p-4">

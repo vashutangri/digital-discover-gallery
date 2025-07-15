@@ -1,7 +1,7 @@
 
 import { useState, useEffect } from 'react';
 import { useNavigate } from 'react-router-dom';
-import { Upload, Search, Grid, List, Filter, LogOut, User, FolderPlus } from 'lucide-react';
+import { Upload, Search, Grid, List, Filter, LogOut, User, FolderPlus, Settings } from 'lucide-react';
 import { supabase } from '@/integrations/supabase/client';
 import { useAuth } from '@/hooks/useAuth';
 import { Button } from '@/components/ui/button';
@@ -15,11 +15,13 @@ import { useToast } from '@/hooks/use-toast';
 import FileUploadZone from '../components/FileUploadZone';
 import FileGallery from '../components/FileGallery';
 import SmartSearch, { SearchFilters } from '../components/SmartSearch';
+import OrganizationManager from '../components/OrganizationManager';
 import { performSmartSearch, DigitalAsset } from '../utils/searchUtils';
 import { FolderBreadcrumb } from '../components/FolderBreadcrumb';
 import { CreateFolderModal } from '../components/CreateFolderModal';
 import { FolderCard } from '../components/FolderCard';
 import { Folder } from '@/types/folder';
+import { Collection } from '@/types/collections';
 
 const Index = () => {
   const navigate = useNavigate();
@@ -40,6 +42,10 @@ const Index = () => {
   const [viewMode, setViewMode] = useState<'grid' | 'list'>('grid');
   const [isAnalyzing, setIsAnalyzing] = useState(false);
   const [showCreateFolderModal, setShowCreateFolderModal] = useState(false);
+  const [showManagement, setShowManagement] = useState(false);
+  const [isSelectionMode, setIsSelectionMode] = useState(false);
+  const [selectedAssets, setSelectedAssets] = useState<string[]>([]);
+  const [selectedCollection, setSelectedCollection] = useState<Collection | null>(null);
 
   // Load user's assets and folders when they sign in
   useEffect(() => {
@@ -372,6 +378,19 @@ const Index = () => {
   const allTags = [...new Set(assets.flatMap(asset => asset.tags))];
 
   // Show loading state while authentication is loading
+  const handleAssetSelect = (assetId: string, selected: boolean) => {
+    setSelectedAssets(prev => 
+      selected 
+        ? [...prev, assetId]
+        : prev.filter(id => id !== assetId)
+    );
+  };
+
+  const handleClearSelection = () => {
+    setSelectedAssets([]);
+    setIsSelectionMode(false);
+  };
+
   if (loading) {
     return (
       <div className="min-h-screen bg-gradient-to-br from-slate-50 to-blue-50 flex items-center justify-center">
@@ -507,15 +526,26 @@ const Index = () => {
                 onNavigateToFolder={handleNavigateToFolder}
               />
               
-              <Button
-                variant="outline"
-                size="sm"
-                onClick={() => setShowCreateFolderModal(true)}
-                className="text-slate-600 hover:text-slate-900"
-              >
-                <FolderPlus className="h-4 w-4 mr-2" />
-                New Folder
-              </Button>
+              <div className="flex items-center gap-4">
+                <Button
+                  variant={showManagement ? "default" : "outline"}
+                  onClick={() => setShowManagement(!showManagement)}
+                  className="flex items-center gap-2"
+                >
+                  <Settings className="h-4 w-4" />
+                  Manage
+                </Button>
+                
+                <Button
+                  variant="outline"
+                  size="sm"
+                  onClick={() => setShowCreateFolderModal(true)}
+                  className="text-slate-600 hover:text-slate-900"
+                >
+                  <FolderPlus className="h-4 w-4 mr-2" />
+                  New Folder
+                </Button>
+              </div>
             </div>
 
             <FileUploadZone 
@@ -544,13 +574,29 @@ const Index = () => {
             )}
 
             
-            <FileGallery 
+          {showManagement ? (
+            <OrganizationManager
+              userId={user.id}
+              isSelectionMode={isSelectionMode}
+              selectedAssets={selectedAssets}
+              onToggleSelectionMode={() => setIsSelectionMode(!isSelectionMode)}
+              onClearSelection={handleClearSelection}
+              onAssetsUpdated={() => window.location.reload()}
+              availableFolders={folders}
+              onCollectionSelect={setSelectedCollection}
+            />
+          ) : (
+            <FileGallery
               assets={filteredAssets}
               viewMode={viewMode}
               onAssetUpdated={handleAssetUpdated}
               onAssetDeleted={handleAssetDeleted}
               onAssetView={handleAssetView}
+              isSelectionMode={isSelectionMode}
+              selectedAssets={selectedAssets}
+              onAssetSelect={handleAssetSelect}
             />
+          )}
           </div>
         </div>
       </div>

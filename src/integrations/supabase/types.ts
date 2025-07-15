@@ -14,12 +14,85 @@ export type Database = {
   }
   public: {
     Tables: {
+      collection_assets: {
+        Row: {
+          added_at: string
+          asset_id: string
+          collection_id: string
+          id: string
+        }
+        Insert: {
+          added_at?: string
+          asset_id: string
+          collection_id: string
+          id?: string
+        }
+        Update: {
+          added_at?: string
+          asset_id?: string
+          collection_id?: string
+          id?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "collection_assets_asset_id_fkey"
+            columns: ["asset_id"]
+            isOneToOne: false
+            referencedRelation: "digital_assets"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "collection_assets_collection_id_fkey"
+            columns: ["collection_id"]
+            isOneToOne: false
+            referencedRelation: "collections"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      collections: {
+        Row: {
+          created_at: string
+          criteria: Json | null
+          description: string | null
+          id: string
+          name: string
+          thumbnail: string | null
+          type: string
+          updated_at: string
+          user_id: string
+        }
+        Insert: {
+          created_at?: string
+          criteria?: Json | null
+          description?: string | null
+          id?: string
+          name: string
+          thumbnail?: string | null
+          type: string
+          updated_at?: string
+          user_id: string
+        }
+        Update: {
+          created_at?: string
+          criteria?: Json | null
+          description?: string | null
+          id?: string
+          name?: string
+          thumbnail?: string | null
+          type?: string
+          updated_at?: string
+          user_id?: string
+        }
+        Relationships: []
+      }
       digital_assets: {
         Row: {
           ai_description: string | null
           ai_objects: string[] | null
           ai_text_content: string | null
           created_at: string
+          deleted_at: string | null
           description: string | null
           exif_data: Json | null
           folder_id: string | null
@@ -43,6 +116,7 @@ export type Database = {
           ai_objects?: string[] | null
           ai_text_content?: string | null
           created_at?: string
+          deleted_at?: string | null
           description?: string | null
           exif_data?: Json | null
           folder_id?: string | null
@@ -66,6 +140,7 @@ export type Database = {
           ai_objects?: string[] | null
           ai_text_content?: string | null
           created_at?: string
+          deleted_at?: string | null
           description?: string | null
           exif_data?: Json | null
           folder_id?: string | null
@@ -134,9 +209,50 @@ export type Database = {
       [_ in never]: never
     }
     Functions: {
+      find_potential_duplicates: {
+        Args: { target_user_id: string }
+        Returns: {
+          asset1_id: string
+          asset2_id: string
+          similarity_score: number
+          match_type: string
+        }[]
+      }
+      gtrgm_compress: {
+        Args: { "": unknown }
+        Returns: unknown
+      }
+      gtrgm_decompress: {
+        Args: { "": unknown }
+        Returns: unknown
+      }
+      gtrgm_in: {
+        Args: { "": unknown }
+        Returns: unknown
+      }
+      gtrgm_options: {
+        Args: { "": unknown }
+        Returns: undefined
+      }
+      gtrgm_out: {
+        Args: { "": unknown }
+        Returns: unknown
+      }
       increment_view_count: {
         Args: { asset_id: string }
         Returns: undefined
+      }
+      set_limit: {
+        Args: { "": number }
+        Returns: number
+      }
+      show_limit: {
+        Args: Record<PropertyKey, never>
+        Returns: number
+      }
+      show_trgm: {
+        Args: { "": string }
+        Returns: string[]
       }
     }
     Enums: {
