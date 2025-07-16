@@ -34,9 +34,13 @@ const CollectionManager = ({ userId, onCollectionSelect }: CollectionManagerProp
 
   const loadCollections = async () => {
     try {
+      // Load collections with asset counts
       const { data, error } = await supabase
         .from('collections')
-        .select('*')
+        .select(`
+          *,
+          collection_assets(count)
+        `)
         .eq('user_id', userId)
         .order('created_at', { ascending: false });
 
@@ -149,20 +153,50 @@ const CollectionManager = ({ userId, onCollectionSelect }: CollectionManagerProp
       ];
 
       for (const collection of smartCollections) {
-        const { error } = await supabase
+        // Create collection
+        const { data: newCollection, error: collectionError } = await supabase
           .from('collections')
           .insert([{
             user_id: userId,
             ...collection
-          }]);
+          }])
+          .select()
+          .single();
 
-        if (error) throw error;
+        if (collectionError) throw collectionError;
+
+        // Find and add matching assets to the collection
+        if (collection.type === 'date' && collection.criteria?.dateRange) {
+          const { data: matchingAssets, error: assetsError } = await supabase
+            .from('digital_assets')
+            .select('id')
+            .eq('user_id', userId)
+            .gte('created_at', collection.criteria.dateRange.start)
+            .lt('created_at', collection.criteria.dateRange.end)
+            .is('deleted_at', null);
+
+          if (assetsError) throw assetsError;
+
+          // Add assets to collection
+          if (matchingAssets && matchingAssets.length > 0) {
+            const collectionAssets = matchingAssets.map(asset => ({
+              collection_id: newCollection.id,
+              asset_id: asset.id
+            }));
+
+            const { error: insertError } = await supabase
+              .from('collection_assets')
+              .insert(collectionAssets);
+
+            if (insertError) throw insertError;
+          }
+        }
       }
 
       await loadCollections();
       toast({
         title: "Success",
-        description: "Smart collections generated",
+        description: "Smart collections generated with assets",
       });
     } catch (error) {
       console.error('Error generating smart collections:', error);
@@ -299,9 +333,14 @@ const CollectionManager = ({ userId, onCollectionSelect }: CollectionManagerProp
                       {collection.description}
                     </p>
                   )}
-                  <Badge variant="outline" className="text-xs">
-                    {collection.type}
-                  </Badge>
+                  <div className="flex items-center gap-2">
+                    <Badge variant="outline" className="text-xs">
+                      {collection.type}
+                    </Badge>
+                    <Badge variant="secondary" className="text-xs">
+                      {(collection as any).collection_assets?.[0]?.count || 0} assets
+                    </Badge>
+                  </div>
                 </div>
               </CardContent>
             </Card>
